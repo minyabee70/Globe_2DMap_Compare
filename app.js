@@ -247,7 +247,7 @@ function updateViews() {
     }
 }
 
-// 8. 팃소의 지시타원(Tissot's Indicatrix) 생성 및 렌더링
+// 8. 팃소의 지시타원(Tissot's Indicatrix) 생성 및 렌더링 (클릭 상호작용 지원)
 function renderTissot() {
     // 이전 그리기 요소 삭제
     globeTissotLayer.selectAll("*").remove();
@@ -262,34 +262,82 @@ function renderTissot() {
     const radius = state.tissotSize;
 
     // 구면 상의 경위도 교차점에 팃소 원 생성
+    let initialFocus = null;
     for (let lat = -90 + density/2; lat < 90; lat += density) {
         for (let lon = -180; lon < 180; lon += density) {
             const circleGenerator = d3.geoCircle()
                 .center([lon, lat])
                 .radius(radius);
             
-            circles.push({
+            const circleFeat = {
                 type: "Feature",
                 geometry: circleGenerator(),
-                properties: { center: [lon, lat] }
-            });
+                properties: { 
+                    center: [lon, lat],
+                    label: `지시타원 (위도 ${lat.toFixed(0)}°, 경도 ${lon.toFixed(0)}°)`,
+                    id: `tissot-${lon.toFixed(0)}-${lat.toFixed(0)}`
+                }
+            };
+            circles.push(circleFeat);
+            
+            // 적도선 부근의 원을 초기 포커스로 지정
+            if (lat === 15 || lat === -15 || lat === 0) {
+                if (lon === 0 || lon === 30 || lon === -30) {
+                    initialFocus = circleFeat;
+                }
+            }
         }
+    }
+
+    if (!initialFocus && circles.length > 0) {
+        initialFocus = circles[0];
+    }
+
+    // 팃소 지시타원 모드 최초 진입 또는 템플릿 전환 시 선택 ID 연동
+    if (initialFocus && (!state.selectedShapeId || !state.selectedShapeId.startsWith('tissot'))) {
+        state.selectedShapeId = initialFocus.properties.id;
     }
 
     // 3D 지구본 렌더링
     globeTissotLayer.selectAll("path")
         .data(circles)
         .enter().append("path")
-        .attr("class", "geo-circle")
-        .attr("d", globePath);
+        .attr("class", classMapper)
+        .attr("d", globePath)
+        .style("cursor", "pointer")
+        .on("click", (event, d) => {
+            event.stopPropagation();
+            selectTissotCircle(d);
+        });
 
     // 2D 평면 지도 렌더링
-    // 메르카토르 등 극지방 찌그러짐으로 에러 나는 패스를 거르기 위해 D3는 알아서 절단 처리하지만 안전하게 바인딩
     mapTissotLayer.selectAll("path")
         .data(circles)
         .enter().append("path")
-        .attr("class", "geo-circle")
-        .attr("d", mapPath);
+        .attr("class", classMapper)
+        .attr("d", mapPath)
+        .style("cursor", "pointer")
+        .on("click", (event, d) => {
+            event.stopPropagation();
+            selectTissotCircle(d);
+        });
+
+    // 현재 선택된 팃소 원의 분석 데이터 노출
+    const currentSelected = circles.find(c => c.properties.id === state.selectedShapeId) || initialFocus;
+    calculateDistortion(currentSelected);
+}
+
+// 팃소 지시타원 클릭 선택 헬퍼 함수
+function selectTissotCircle(feature) {
+    if (!feature || !feature.properties) return;
+    state.selectedShapeId = feature.properties.id;
+    
+    // 3D/2D 지시타원 레이어 전체의 CSS 클래스를 실시간 재적용하여 하이라이트 스타일 업데이트
+    globeTissotLayer.selectAll("path").attr("class", classMapper);
+    mapTissotLayer.selectAll("path").attr("class", classMapper);
+    
+    // 우측 및 대시보드 왜곡 데이터 업데이트
+    calculateDistortion(feature);
 }
 
 // 9. 도형 시뮬레이터 렌더링 및 실시간 분석 계산
@@ -544,6 +592,7 @@ function classMapper(d) {
     if (!id) return baseClass;
 
     if (id.startsWith('circle')) baseClass = "geo-circle-filled";
+    else if (id.startsWith('tissot')) baseClass = "geo-circle";
     else if (id === 'greenland' || id === 'africa') baseClass = "geo-circle-filled";
     else if (id.startsWith('rect')) baseClass = "geo-rect";
     else if (id === 'bermuda') baseClass = "geo-poly";
