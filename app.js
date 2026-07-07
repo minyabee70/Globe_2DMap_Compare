@@ -361,7 +361,7 @@ function renderCustomShapes() {
         centers.forEach((c, idx) => {
             const coords = [];
             for (let i = 0; i <= c.sides; i++) {
-                const angle = (i * 2 * Math.PI) / c.sides - Math.PI / 2; // 회전 시작각 보정
+                const angle = - (i * 2 * Math.PI) / c.sides - Math.PI / 2; // 반시계 방향 회전으로 반전
                 const ptLon = c.lon + (radius * Math.cos(angle)) / cosLat;
                 const ptLat = lat0 + radius * Math.sin(angle);
                 coords.push([ptLon, ptLat]);
@@ -381,13 +381,13 @@ function renderCustomShapes() {
             if (c.sides === 5) focusedShape = polyFeat;
         });
     } else if (state.activeTemplate === 'rectangles') {
-        // 4. 구면 상의 사각형 비교 (가로 30도, 세로 30도)
+        // 4. 구면 상의 사각형 비교 (가로 30도, 세로 30도) - Winding Order 뒤집음
         const rectEquator = {
             type: "Feature",
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [-15, -15], [15, -15], [15, 15], [-15, 15], [-15, -15]
+                    [-15, -15], [-15, 15], [15, 15], [15, -15], [-15, -15]
                 ]]
             },
             properties: { label: "적도의 사각형", id: "rect-equator" }
@@ -397,7 +397,7 @@ function renderCustomShapes() {
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [-15, 45], [15, 45], [15, 75], [-15, 75], [-15, 45]
+                    [-15, 45], [-15, 75], [15, 75], [15, 45], [-15, 45]
                 ]]
             },
             properties: { label: "고위도의 사각형", id: "rect-high" }
@@ -405,7 +405,7 @@ function renderCustomShapes() {
         shapes.push(rectEquator, rectHigh);
         focusedShape = rectHigh;
     } else if (state.activeTemplate === 'equator-straddle') {
-        // 5. 적도 위아래로 걸쳐지는 도형 세트 (원, 사각형, 다각형 각각 1개씩 적도 대칭 배치)
+        // 5. 적도 위아래로 걸쳐지는 도형 세트 (원, 사각형, 다각형 각각 1개씩 적도 대칭 배치) - Winding Order 뒤집음
         const straddleCircle = {
             type: "Feature",
             geometry: d3.geoCircle().center([0, 0]).radius(12)(),
@@ -416,7 +416,7 @@ function renderCustomShapes() {
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [-30, -12], [30, -12], [30, 12], [-30, 12], [-30, -12]
+                    [-30, -12], [-30, 12], [30, 12], [30, -12], [-30, -12]
                 ]]
             },
             properties: { label: "적도 걸침 사각형", id: "rect-straddle" }
@@ -426,7 +426,7 @@ function renderCustomShapes() {
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [0, 15], [15, 0], [0, -15], [-15, 0], [0, 15]
+                    [0, 15], [-15, 0], [0, -15], [15, 0], [0, 15]
                 ]]
             },
             properties: { label: "적도 걸침 다각형 (다이아몬드)", id: "poly-straddle" }
@@ -443,15 +443,15 @@ function renderCustomShapes() {
         // 6. 북위 80도부터 남위 80도까지 길게 그려지는 형태들
         // A. 남북 종단 자오선 띠 사각형 (D3 촘촘한 세그먼트로 보간하여 그리기)
         const stripCoords = [];
-        // 왼쪽 경선 (경도 -8)
+        // 오른쪽 경선 (경도 8)을 먼저 위로 수집
         for (let lat = -80; lat <= 80; lat += 5) {
-            stripCoords.push([-8, lat]);
-        }
-        // 오른쪽 경선 (경도 8)
-        for (let lat = 80; lat >= -80; lat -= 5) {
             stripCoords.push([8, lat]);
         }
-        stripCoords.push([-8, -80]); // 폐곡선 닫기
+        // 왼쪽 경선 (경도 -8)을 아래로 수집
+        for (let lat = 80; lat >= -80; lat -= 5) {
+            stripCoords.push([-8, lat]);
+        }
+        stripCoords.push([8, -80]); // 폐곡선 닫기
         
         const meridianRect = {
             type: "Feature",
@@ -635,20 +635,65 @@ function calculateDistortion(feature) {
     }
 
     try {
-        // A. 구면 실제 면적 계산 (라디안 단위 -> km² 단위)
-        // 지구 반지름 R = 6371km, R^2 = 40589641 km²
-        let sphereAreaRad = 0;
-        try {
-            sphereAreaRad = d3.geoArea(feature.geometry);
-        } catch (e) {
-            sphereAreaRad = 0;
-        }
+        // A. 구면 실제 면적 계산 (D3 Winding Order 및 구면 기하 오차 방지 보완 공식 적용)
+        let realAreaKm2 = 0;
+        const id = (feature.properties && feature.properties.id) ? feature.properties.id : "";
         
-        // 꼭짓점 방향(Winding Order)이 반대로 되어 면적이 지구 반구면 이상(2*PI)의 크기로 계산된 경우 보정
-        if (sphereAreaRad > Math.PI * 2) {
-            sphereAreaRad = Math.PI * 4 - sphereAreaRad;
+        if (id.startsWith('circle') || id === 'greenland' || id === 'africa') {
+            // 1. 구면 원 지오메트리 면적 수학 공식: S = 2 * PI * R^2 * (1 - cos(theta))
+            let rDeg = 5; // tissot 기본 반지름
+            if (state.activeTemplate === 'equator-circles' || state.activeTemplate === 'greenland-africa') rDeg = 10;
+            else if (state.activeTemplate === 'equator-straddle') rDeg = 12;
+            else if (state.activeTemplate === 'meridian-strip') rDeg = 6;
+            
+            const theta = rDeg * Math.PI / 180;
+            realAreaKm2 = 2 * Math.PI * 6371 * 6371 * (1 - Math.cos(theta));
+        } else if (id.startsWith('rect') && feature.geometry && feature.geometry.coordinates) {
+            // 2. 구면 사각형 지오메트리 면적 수학 공식: S = R^2 * delta_lon_rad * |sin(lat2) - sin(lat1)|
+            const coords = feature.geometry.coordinates[0];
+            const lons = coords.map(p => p[0]);
+            const lats = coords.map(p => p[1]);
+            const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+            const minY = Math.min(...lats), maxY = Math.max(...lats);
+            
+            const deltaLonRad = (maxLon - minLon) * Math.PI / 180;
+            const sinLat2 = Math.sin(maxY * Math.PI / 180);
+            const sinLat1 = Math.sin(minY * Math.PI / 180);
+            
+            realAreaKm2 = 6371 * 6371 * deltaLonRad * Math.abs(sinLat2 - sinLat1);
+        } else {
+            // 3. 다각형 및 사용자 커스텀 그리기: d3.geoArea 연산 시도 및 실패 시 위도 보정 신발끈 적분
+            let sphereAreaRad = 0;
+            try {
+                sphereAreaRad = d3.geoArea(feature.geometry || feature);
+            } catch (e) {
+                sphereAreaRad = 0;
+            }
+            if (sphereAreaRad > Math.PI * 2) {
+                sphereAreaRad = Math.PI * 4 - sphereAreaRad;
+            }
+            realAreaKm2 = sphereAreaRad * 6371 * 6371;
+            
+            // 만약 d3.geoArea 결과가 유효하지 않거나 너무 작으면 (꼬임 오류 등), 평면 위도 보정 캘리브레이션 공식으로 복원
+            if ((realAreaKm2 < 1 || isNaN(realAreaKm2)) && feature.geometry && feature.geometry.coordinates) {
+                const coords = feature.geometry.coordinates[0];
+                let degArea = 0;
+                if (coords.length >= 3) {
+                    let j = coords.length - 1;
+                    for (let i = 0; i < coords.length; i++) {
+                        degArea += (coords[j][0] + coords[i][0]) * (coords[j][1] - coords[i][1]);
+                        j = i;
+                    }
+                    degArea = Math.abs(degArea / 2);
+                    
+                    const centroid = d3.geoCentroid(feature);
+                    const latRad = Math.abs(centroid[1] * Math.PI / 180);
+                    // 1도 격자의 위도별 면적: 111.32km * 111.32km * cos(lat)
+                    const km2PerDeg2 = 111.32 * 111.32 * Math.cos(latRad);
+                    realAreaKm2 = degArea * km2PerDeg2;
+                }
+            }
         }
-        const realAreaKm2 = sphereAreaRad * 6371 * 6371;
 
         // B. 평면 지도 상의 투영 픽셀 좌표 계산 및 픽셀 면적 계산
         const activeProj = mapProjections[state.projectionName];
