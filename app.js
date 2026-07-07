@@ -450,7 +450,7 @@ function renderCustomShapes() {
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [0, 15], [-15, 0], [0, -15], [15, 0], [0, 15]
+                    [0, 15], [15, 0], [0, -15], [-15, 0], [0, 15]
                 ]]
             },
             properties: { label: "적도 걸침 다각형 (다이아몬드)", id: "poly-straddle" }
@@ -465,15 +465,15 @@ function renderCustomShapes() {
         // 6. 북위 80도부터 남위 80도까지 길게 그려지는 형태들
         // A. 남북 종단 자오선 띠 사각형 (D3 촘촘한 세그먼트로 보간하여 그리기)
         const stripCoords = [];
-        // 오른쪽 경선 (경도 8)을 먼저 위로 수집
+        // 왼쪽 경선 (경도 -8)을 먼저 위로 수집
         for (let lat = -80; lat <= 80; lat += 5) {
-            stripCoords.push([8, lat]);
-        }
-        // 왼쪽 경선 (경도 -8)을 아래로 수집
-        for (let lat = 80; lat >= -80; lat -= 5) {
             stripCoords.push([-8, lat]);
         }
-        stripCoords.push([8, -80]); // 폐곡선 닫기
+        // 오른쪽 경선 (경도 8)을 아래로 수집
+        for (let lat = 80; lat >= -80; lat -= 5) {
+            stripCoords.push([8, lat]);
+        }
+        stripCoords.push([-8, -80]); // 폐곡선 닫기
         
         const meridianRect = {
             type: "Feature",
