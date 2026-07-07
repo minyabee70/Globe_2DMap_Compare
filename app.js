@@ -539,13 +539,17 @@ function renderCustomShapes() {
 // 도형 렌더링 클래스 매퍼 헬퍼 함수 (선택된 도형에 selected-shape 클래스 부여)
 function classMapper(d) {
     let baseClass = "geo-poly";
-    if (d.properties.id && d.properties.id.startsWith('circle')) baseClass = "geo-circle-filled";
-    if (d.properties.id === 'greenland' || d.properties.id === 'africa') baseClass = "geo-circle-filled";
-    if (d.properties.id && d.properties.id.startsWith('rect')) baseClass = "geo-rect";
-    if (d.properties.id === 'bermuda') baseClass = "geo-poly";
+    if (!d || !d.properties) return baseClass;
+    const id = d.properties.id;
+    if (!id) return baseClass;
+
+    if (id.startsWith('circle')) baseClass = "geo-circle-filled";
+    else if (id === 'greenland' || id === 'africa') baseClass = "geo-circle-filled";
+    else if (id.startsWith('rect')) baseClass = "geo-rect";
+    else if (id === 'bermuda') baseClass = "geo-poly";
     
     // 만약 선택된 도형이면 하이라이트 클래스 덧붙임
-    if (state.selectedShapeId && d.properties.id === state.selectedShapeId) {
+    if (state.selectedShapeId && id === state.selectedShapeId) {
         baseClass += " selected-shape";
     }
     return baseClass;
@@ -620,7 +624,8 @@ function renderDrawingGuide() {
 
 // 10. 도형 왜곡 연산 알고리즘 (신발끈 공식 및 구면 면적 비교)
 function calculateDistortion(feature) {
-    if (!feature) {
+    // 도형이나 지오메트리가 유효하지 않은 경우 안전하게 초기화 후 조기 리턴 (TypeError 방지)
+    if (!feature || !feature.geometry || !feature.geometry.type || !feature.geometry.coordinates) {
         d3.select("#geom-real-area").text("0 km²");
         d3.select("#geom-map-area").text("0 px²");
         d3.select("#geom-area-ratio").text("1.00배");
@@ -629,31 +634,32 @@ function calculateDistortion(feature) {
         return;
     }
 
-    // A. 구면 실제 면적 계산 (라디안 단위 -> km² 단위)
-    // 지구 반지름 R = 6371km, R^2 = 40589641 km²
-    let sphereAreaRad = 0;
-    if (feature.geometry) {
-        sphereAreaRad = d3.geoArea(feature.geometry);
-    } else {
-        sphereAreaRad = d3.geoArea(feature);
-    }
-    
-    // 꼭짓점 방향(Winding Order)이 반대로 되어 면적이 지구 반구면 이상(2*PI)의 크기로 계산된 경우 보정
-    if (sphereAreaRad > Math.PI * 2) {
-        sphereAreaRad = Math.PI * 4 - sphereAreaRad;
-    }
-    const realAreaKm2 = sphereAreaRad * 6371 * 6371;
+    try {
+        // A. 구면 실제 면적 계산 (라디안 단위 -> km² 단위)
+        // 지구 반지름 R = 6371km, R^2 = 40589641 km²
+        let sphereAreaRad = 0;
+        try {
+            sphereAreaRad = d3.geoArea(feature.geometry);
+        } catch (e) {
+            sphereAreaRad = 0;
+        }
+        
+        // 꼭짓점 방향(Winding Order)이 반대로 되어 면적이 지구 반구면 이상(2*PI)의 크기로 계산된 경우 보정
+        if (sphereAreaRad > Math.PI * 2) {
+            sphereAreaRad = Math.PI * 4 - sphereAreaRad;
+        }
+        const realAreaKm2 = sphereAreaRad * 6371 * 6371;
 
-    // B. 평면 지도 상의 투영 픽셀 좌표 계산 및 픽셀 면적 계산
-    const activeProj = mapProjections[state.projectionName];
-    
-    // GeoJSON의 첫 번째 링 좌표 추출
-    let coords = [];
-    if (feature.geometry.type === "Polygon") {
-        coords = feature.geometry.coordinates[0];
-    } else if (feature.geometry.type === "MultiPolygon") {
-        coords = feature.geometry.coordinates[0][0];
-    }
+        // B. 평면 지도 상의 투영 픽셀 좌표 계산 및 픽셀 면적 계산
+        const activeProj = mapProjections[state.projectionName];
+        
+        // GeoJSON의 첫 번째 링 좌표 추출
+        let coords = [];
+        if (feature.geometry.type === "Polygon") {
+            coords = feature.geometry.coordinates[0];
+        } else if (feature.geometry.type === "MultiPolygon") {
+            coords = feature.geometry.coordinates[0][0];
+        }
 
     // 픽셀 좌표 변환
     const pixelCoords = coords.map(pt => activeProj(pt)).filter(pt => pt !== null);
@@ -811,6 +817,9 @@ function calculateDistortion(feature) {
     }
 
     d3.select("#distortion-detailed-desc").html(detailedDesc);
+    } catch (err) {
+        console.error("Distortion error:", err);
+    }
 }
 
 // 11. 인터랙션 바인딩 및 이벤트 리스너 설정
