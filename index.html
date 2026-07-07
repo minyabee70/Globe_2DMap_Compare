@@ -147,6 +147,35 @@
                             </p>
                         </div>
 
+                        <!-- 선택한 도형 실시간 왜곡 분석 대시보드 카드 -->
+                        <div class="card metrics-card" id="geom-metrics-dashboard-card">
+                            <h3>선택 도형 실시간 왜곡 분석</h3>
+                            <p class="description" style="font-size: 0.74rem; line-height: 1.4; color: var(--text-secondary); margin-bottom: 8px;">
+                                현재 지도와 지구본 상에서 선택(클릭)한 도형의 실제 및 평면 투영 왜곡 분석 수치 데이터입니다.
+                            </p>
+                            <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 8px;">
+                                <div class="metric-item" style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                                    <span class="label" style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 2px;">실제 구면 면적</span>
+                                    <span class="value text-highlight" id="dash-geom-real-area" style="font-size: 0.88rem; font-family: var(--font-mono); font-weight: 600; color: var(--color-accent);">0 km²</span>
+                                </div>
+                                <div class="metric-item" style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                                    <span class="label" style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 2px;">평면지도 겉보기 면적</span>
+                                    <span class="value text-highlight" id="dash-geom-map-area" style="font-size: 0.88rem; font-family: var(--font-mono); font-weight: 600; color: var(--color-accent);">0 px²</span>
+                                </div>
+                                <div class="metric-item" style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                                    <span class="label" style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 2px;">면적 왜곡 배율 (평면/구면)</span>
+                                    <span class="value text-highlight" id="dash-geom-area-ratio" style="font-size: 0.88rem; font-family: var(--font-mono); font-weight: 600; color: #fb7185;">1.00배</span>
+                                </div>
+                                <div class="metric-item" style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                                    <span class="label" style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 2px;">원형 왜곡도 (종횡비 편차)</span>
+                                    <span class="value text-highlight" id="dash-geom-distortion" style="font-size: 0.88rem; font-family: var(--font-mono); font-weight: 600; color: #fbbf24;">0.00%</span>
+                                </div>
+                            </div>
+                            <div class="metric-help-box" style="font-size: 0.72rem; padding: 6px 8px; background: rgba(0, 240, 255, 0.03); border-radius: 4px; border-left: 2px solid var(--color-accent); line-height: 1.45;">
+                                <span id="dash-distortion-detailed-desc" style="color: var(--text-secondary);">도형을 선택하거나 지도를 클릭하여 도형을 그려보세요. 구면상의 면적 대비 지도 평면에 투영된 면적 왜곡 수치가 실시간 계산됩니다.</span>
+                            </div>
+                        </div>
+
                         <!-- 위도별 3대 도법 왜곡 대조표 카드 -->
                         <div class="card comparison-card" id="distortion-comparison-card">
                             <h3>위도별 3대 도법 왜곡 대조표</h3>

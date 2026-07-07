@@ -627,10 +627,20 @@ function calculateDistortion(feature) {
     // 도형이나 지오메트리가 유효하지 않은 경우 안전하게 초기화 후 조기 리턴 (TypeError 방지)
     if (!feature || !feature.geometry || !feature.geometry.type || !feature.geometry.coordinates) {
         d3.select("#geom-real-area").text("0 km²");
+        d3.select("#dash-geom-real-area").text("0 km²");
+        
         d3.select("#geom-map-area").text("0 px²");
+        d3.select("#dash-geom-map-area").text("0 px²");
+        
         d3.select("#geom-area-ratio").text("1.00배");
+        d3.select("#dash-geom-area-ratio").text("1.00배");
+        
         d3.select("#geom-distortion").text("0.00%");
-        d3.select("#distortion-detailed-desc").text("템플릿을 선택하거나 지도를 클릭하여 도형을 그려보세요. 구면상의 면적 대비 지도 평면에 투영된 면적 왜곡 수치가 실시간 계산됩니다.");
+        d3.select("#dash-geom-distortion").text("0.00%");
+        
+        const initDesc = "템플릿을 선택하거나 지도를 클릭하여 도형을 그려보세요. 구면상의 면적 대비 지도 평면에 투영된 면적 왜곡 수치가 실시간 계산됩니다.";
+        d3.select("#distortion-detailed-desc").text(initDesc);
+        d3.select("#dash-distortion-detailed-desc").text(initDesc);
         return;
     }
 
@@ -786,15 +796,21 @@ function calculateDistortion(feature) {
     }
 
     d3.select("#geom-real-area").text(realAreaStr);
+    d3.select("#dash-geom-real-area").text(realAreaStr);
+    
     d3.select("#geom-map-area").text(pxAreaStr);
+    d3.select("#dash-geom-map-area").text(pxAreaStr);
     
     if (areaRatio === Infinity || isNaN(areaRatio) || areaRatio > 1000) {
         d3.select("#geom-area-ratio").text("측정 불가 (∞)");
+        d3.select("#dash-geom-area-ratio").text("측정 불가 (∞)");
     } else {
         d3.select("#geom-area-ratio").text(`${areaRatio.toFixed(2)}배`);
+        d3.select("#dash-geom-area-ratio").text(`${areaRatio.toFixed(2)}배`);
     }
     
     d3.select("#geom-distortion").text(`${shapeDistortion.toFixed(2)}%`);
+    d3.select("#dash-geom-distortion").text(`${shapeDistortion.toFixed(2)}%`);
 
     // 수치에 근거한 동적 해설 문구 작성
     let detailedDesc = "";
@@ -862,6 +878,7 @@ function calculateDistortion(feature) {
     }
 
     d3.select("#distortion-detailed-desc").html(detailedDesc);
+    d3.select("#dash-distortion-detailed-desc").html(detailedDesc);
     } catch (err) {
         console.error("Distortion error:", err);
     }
