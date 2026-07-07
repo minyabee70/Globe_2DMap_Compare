@@ -429,46 +429,22 @@ function renderCustomShapes() {
             if (c.sides === 5) focusedShape = polyFeat;
         });
     } else if (state.activeTemplate === 'rectangles') {
-        // 4. 구면 상의 사각형 비교 (가로 30도, 세로 30도) - Winding Order 뒤집음
-        const rectEquator = {
-            type: "Feature",
-            geometry: {
-                type: "Polygon",
-                coordinates: [[
-                    [-15, -15], [-15, 15], [15, 15], [15, -15], [-15, -15]
-                ]]
-            },
-            properties: { label: "적도의 사각형", id: "rect-equator" }
-        };
-        const rectHigh = {
-            type: "Feature",
-            geometry: {
-                type: "Polygon",
-                coordinates: [[
-                    [-15, 45], [-15, 75], [15, 75], [15, 45], [-15, 45]
-                ]]
-            },
-            properties: { label: "고위도의 사각형", id: "rect-high" }
-        };
+        // 4. 구면 상의 사각형 비교 (가로 30도, 세로 30도) - 촘촘한 세그먼트로 격자선 보간
+        const rectEquator = createInterpolatedRect(-15, 15, -15, 15, "적도의 사각형", "rect-equator");
+        const rectHigh = createInterpolatedRect(-15, 15, 45, 75, "고위도의 사각형", "rect-high");
         shapes.push(rectEquator, rectHigh);
         focusedShape = rectHigh;
     } else if (state.activeTemplate === 'equator-straddle') {
-        // 5. 적도 위아래로 걸쳐지는 도형 세트 (원, 사각형, 다각형 각각 1개씩 적도 대칭 배치) - Winding Order 뒤집음
+        // 5. 적도 위아래로 걸쳐지는 도형 세트 (원, 사각형, 다각형 각각 1개씩 적도 대칭 배치)
         const straddleCircle = {
             type: "Feature",
             geometry: d3.geoCircle().center([0, 0]).radius(12)(),
             properties: { label: "적도 걸침 원", id: "circle-straddle" }
         };
-        const straddleRect = {
-            type: "Feature",
-            geometry: {
-                type: "Polygon",
-                coordinates: [[
-                    [-30, -12], [-30, 12], [30, 12], [30, -12], [-30, -12]
-                ]]
-            },
-            properties: { label: "적도 걸침 사각형", id: "rect-straddle" }
-        };
+        
+        // 사각형: 경도 -40 ~ -10도 범위 (서아프리카) -> 촘촘한 격자 보간 적용
+        const straddleRect = createInterpolatedRect(-65, -5, -12, 12, "적도 걸침 사각형", "rect-straddle");
+        
         const straddlePoly = {
             type: "Feature",
             geometry: {
@@ -479,9 +455,7 @@ function renderCustomShapes() {
             },
             properties: { label: "적도 걸침 다각형 (다이아몬드)", id: "poly-straddle" }
         };
-        // 적도 걸침 사각형은 경도 오프셋을 약간 주어 서로 겹치지 않게 가로로 분산 배치합니다.
-        // 사각형: 경도 -40 ~ -10도 범위, 다각형: 경도 15 ~ 45도 범위, 원: 경도 -15 ~ 15도 범위
-        straddleRect.geometry.coordinates[0] = straddleRect.geometry.coordinates[0].map(pt => [pt[0] - 35, pt[1]]);
+        // 다각형: 경도 15 ~ 45도 범위
         straddlePoly.geometry.coordinates[0] = straddlePoly.geometry.coordinates[0].map(pt => [pt[0] + 35, pt[1]]);
         
         shapes.push(straddleCircle, straddleRect, straddlePoly);
@@ -615,6 +589,45 @@ function selectShape(feature) {
     
     // 우측 상세 정보 수치 및 해설을 선택한 도형으로 업데이트
     calculateDistortion(feature);
+}
+
+// 촘촘한 위경도 격자 세그먼트로 보간된 구면 사각형 생성기 (메르카토르 등에서 직선 격자로 투영되도록 만듦)
+function createInterpolatedRect(minLon, maxLon, minLat, maxLat, label, id) {
+    const coords = [];
+    const step = 0.5; // 0.5도 격자 단위로 매우 촘촘하게 분할
+    
+    // 1. 좌측 경계선 (위로 이동): 경도 minLon 고정, 위도 minLat -> maxLat
+    for (let lat = minLat; lat <= maxLat; lat += step) {
+        coords.push([minLon, lat]);
+    }
+    if (coords[coords.length - 1][1] !== maxLat) coords.push([minLon, maxLat]);
+    
+    // 2. 위쪽 경계선 (우측 이동): 위도 maxLat 고정, 경도 minLon -> maxLon
+    for (let lon = minLon; lon <= maxLon; lon += step) {
+        coords.push([lon, maxLat]);
+    }
+    if (coords[coords.length - 1][0] !== maxLon) coords.push([maxLon, maxLat]);
+    
+    // 3. 우측 경계선 (아래 이동): 경도 maxLon 고정, 위도 maxLat -> minLat
+    for (let lat = maxLat; lat >= minLat; lat -= step) {
+        coords.push([maxLon, lat]);
+    }
+    if (coords[coords.length - 1][1] !== minLat) coords.push([maxLon, minLat]);
+    
+    // 4. 아래쪽 경계선 (좌측 이동): 위도 minLat 고정, 경도 maxLon -> minLon
+    for (let lon = maxLon; lon >= minLon; lon -= step) {
+        coords.push([lon, minLat]);
+    }
+    if (coords[coords.length - 1][0] !== minLon) coords.push([minLon, minLat]);
+    
+    return {
+        type: "Feature",
+        geometry: {
+            type: "Polygon",
+            coordinates: [coords]
+        },
+        properties: { label: label, id: id }
+    };
 }
 
 // 그리기 진행 상태 가이드라인 렌더링
