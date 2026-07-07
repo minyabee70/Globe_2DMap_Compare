@@ -631,7 +631,17 @@ function calculateDistortion(feature) {
 
     // A. 구면 실제 면적 계산 (라디안 단위 -> km² 단위)
     // 지구 반지름 R = 6371km, R^2 = 40589641 km²
-    const sphereAreaRad = d3.geoArea(feature);
+    let sphereAreaRad = 0;
+    if (feature.geometry) {
+        sphereAreaRad = d3.geoArea(feature.geometry);
+    } else {
+        sphereAreaRad = d3.geoArea(feature);
+    }
+    
+    // 꼭짓점 방향(Winding Order)이 반대로 되어 면적이 지구 반구면 이상(2*PI)의 크기로 계산된 경우 보정
+    if (sphereAreaRad > Math.PI * 2) {
+        sphereAreaRad = Math.PI * 4 - sphereAreaRad;
+    }
     const realAreaKm2 = sphereAreaRad * 6371 * 6371;
 
     // B. 평면 지도 상의 투영 픽셀 좌표 계산 및 픽셀 면적 계산
@@ -716,9 +726,12 @@ function calculateDistortion(feature) {
         realAreaStr = realAreaKm2 < 1000 ? `${realAreaKm2.toFixed(2)} km²` : `${Math.round(realAreaKm2).toLocaleString()} km²`;
     }
     
+    // 2D 줌 스케일이 적용된 겉보기 픽셀 면적 계산 (화면상 시각적 점유 픽셀 크기 반영)
+    const visiblePxArea = pxArea * state.zoomScale * state.zoomScale;
+    
     let pxAreaStr = "0 px²";
-    if (pxArea > 0) {
-        pxAreaStr = pxArea < 1000 ? `${pxArea.toFixed(2)} px²` : `${Math.round(pxArea).toLocaleString()} px²`;
+    if (visiblePxArea > 0) {
+        pxAreaStr = visiblePxArea < 1000 ? `${visiblePxArea.toFixed(2)} px²` : `${Math.round(visiblePxArea).toLocaleString()} px²`;
     }
 
     d3.select("#geom-real-area").text(realAreaStr);
@@ -874,12 +887,22 @@ function setupInteractions() {
     mapSvg.on("click", (event) => {
         if (state.simulationMode !== 'shapes' || state.activeTemplate !== 'user-draw') return;
         
-        // 클릭 좌표 얻기
+        // 클릭 좌표 얻기 (현재 줌 스케일 및 중앙 정렬 패닝 역산 보정 적용)
         const coords = d3.pointer(event);
+        const k = state.zoomScale;
+        const tx = (mapWidth / 2) * (1 - k);
+        const ty = (mapHeight / 2) * (1 - k);
+        
+        // 줌 트랜스폼이 입혀지기 이전의 원본 픽셀 스케일 상의 좌표로 변환
+        const correctedCoords = [
+            (coords[0] - tx) / k,
+            (coords[1] - ty) / k
+        ];
+        
         const activeProj = mapProjections[state.projectionName];
         
-        // 픽셀 좌표를 위경도 좌표로 역투영 (Invert)
-        const geoPt = activeProj.invert(coords);
+        // 보정된 픽셀 좌표를 위경도 좌표로 역투영 (Invert)
+        const geoPt = activeProj.invert(correctedCoords);
         
         // 투영 범위 밖을 클릭한 경우 null 방지
         if (geoPt && !isNaN(geoPt[0]) && !isNaN(geoPt[1])) {
