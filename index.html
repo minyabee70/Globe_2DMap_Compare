@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지구본 vs 평면도법: 투영의 과학과 왜곡</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- D3.js & TopoJSON CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 헤더 영역 -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="icon">🌍</span>
+                <h1>지구본 vs 평면도법 <span>투영의 과학과 공간 왜곡 분석</span></h1>
+            </div>
+            <div class="header-status">
+                <span id="loading-indicator" class="badge loading">데이터 로딩 중...</span>
+            </div>
+        </header>
+
+        <!-- 메인 워크스페이스 (3분할 레이아웃) -->
+        <main class="app-workspace">
+            
+            <!-- 1. 좌측: 3D 지구본 (Globe) -->
+            <section class="workspace-panel globe-section">
+                <div class="panel-header">
+                    <h2>3D 입체 지구본 (Globe)</h2>
+                    <span class="panel-subtitle">실제 지구의 형상 (오르토그래픽 투영)</span>
+                </div>
+                <div class="view-container" id="globe-container">
+                    <!-- D3 SVG가 삽입될 공간 -->
+                    <div class="instructions-overlay">
+                        <span>드래그하여 지구본을 회전해보세요</span>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="coord-display">
+                        <div class="coord-info">
+                            <span>회전각(λ, φ): </span>
+                            <span id="globe-rotation" class="value">0.00°, 0.00°</span>
+                        </div>
+                        <button id="btn-reset-rotation" class="btn-reset" title="회전각 초기화">🔄 초기화</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 중앙: 평면 도법 지도 (2D Map Projection) -->
+            <section class="workspace-panel map-section">
+                <div class="panel-header">
+                    <div class="title-with-select">
+                        <h2>평면 투영 지도 (2D Map)</h2>
+                        <div class="select-wrapper">
+                            <select id="projection-select">
+                                <option value="mercator" selected>메르카토르 도법 (Mercator)</option>
+                                <option value="equirectangular">정거원통 도법 (Equirectangular)</option>
+                                <option value="mollweide">몰바이데 도법 (Mollweide)</option>
+                                <option value="robinson">로빈슨 도법 (Robinson)</option>
+                                <option value="azimuthalEqualArea">방위등적 도법 (Azimuthal Equal Area)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <span class="panel-subtitle" id="projection-subtitle">각도가 보존되나 면적이 극도로 왜곡되는 등각도법</span>
+                </div>
+                <div class="view-container" id="map-container">
+                    <!-- D3 SVG가 삽입될 공간 -->
+                </div>
+                <div class="panel-footer">
+                    <div class="legend-container">
+                        <button class="legend-item active" id="legend-circle" title="원(팃소 지시타원) 표출">
+                            <span class="legend-color shape-circle"></span>원(지시타원)
+                        </button>
+                        <button class="legend-item" id="legend-rect" title="구면 격자 사각형 표출">
+                            <span class="legend-color shape-rect"></span>사각형
+                        </button>
+                        <button class="legend-item" id="legend-poly" title="다각형 다중 비교(3~10각) 표출">
+                            <span class="legend-color shape-poly"></span>다각형
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 우측: 설명 패널 및 인터랙션 컨트롤러 (Explanation & Controls) -->
+            <section class="workspace-panel info-section">
+                <!-- 탭 메뉴 -->
+                <div class="info-tabs">
+                    <button class="tab-btn active" data-tab="learning">학습 및 왜곡 분석</button>
+                    <button class="tab-btn" data-tab="geometry">도형 시뮬레이터</button>
+                </div>
+
+                <div class="tab-content-wrapper">
+                    <!-- 탭 1: 학습 및 왜곡 분석 -->
+                    <div class="tab-content active" id="tab-learning">
+                        <!-- 선택한 도법에 대한 상세 분석 카드 -->
+                        <div class="card projection-card">
+                            <h3 id="info-proj-name">메르카토르 도법 (Mercator)</h3>
+                            <div class="proj-badges">
+                                <span class="badge badge-type" id="info-proj-type">등각도법 (Conformal)</span>
+                                <span class="badge badge-distortion" id="info-proj-distort">면적 왜곡: 매우 높음</span>
+                            </div>
+                            <p class="description" id="info-proj-desc">
+                                네덜란드의 지도학자 메르카토르가 1569년에 발표한 도법입니다. 지도 상의 임의의 두 지점을 직선으로 연결한 선(항로)이 모든 자오선과 같은 각도로 만나므로, 항해용 지도로 매우 유용하게 쓰였습니다. 하지만 고위도로 갈수록 면적이 무한대로 확대되어 그린란드가 아프리카 대륙과 크기가 비슷하게 보이는 치명적인 왜곡이 존재합니다.
+                            </p>
+                        </div>
+
+                        <!-- 왜곡 정량 지표 -->
+                        <div class="card metrics-card">
+                            <h3>현재 도법의 왜곡 지표</h3>
+                            <div class="metric-grid">
+                                <div class="metric-item">
+                                    <span class="label">면적 왜곡도 (최대/최소 비율)</span>
+                                    <div class="metric-visual">
+                                        <div class="metric-bar" id="metric-area-bar" style="width: 90%;"></div>
+                                    </div>
+                                    <span class="value" id="metric-area-value">무한대 (∞)</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="label">형태 왜곡도 (각도 비보존율)</span>
+                                    <div class="metric-visual">
+                                        <div class="metric-bar" id="metric-shape-bar" style="width: 0%;"></div>
+                                    </div>
+                                    <span class="value" id="metric-shape-value">0% (형태 완전 보존)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 수학적 원리 (가우스 정리) -->
+                        <div class="card math-card">
+                            <h3>수학적 진실: 왜곡은 왜 필수적인가?</h3>
+                            <p>
+                                3차원의 완전한 구(Sphere)를 찢거나 구기지 않고 평평한 2차원 평면으로 완벽하게 펼치는 것은 수학적으로 <strong>불가능</strong>합니다.
+                            </p>
+                            <div class="math-formula">
+                                <strong>가우스의 빼어난 정리 (Theorema Egregium)</strong>
+                                <p>구의 가우스 곡률 \(K = 1/R^2 > 0\) 이며, 평면의 곡률 \(K = 0\) 입니다. 굽힘(Isometry)으로는 곡률을 바꿀 수 없으므로 구면을 면적과 형태 모두 왜곡 없이 평면화할 수 없습니다.</p>
+                            </div>
+                            <p class="note">
+                                이에 따라 모든 평면 지도는 <strong>각도(형태), 면적, 거리, 방향</strong> 중 최소 하나 이상을 희생해야만 합니다.
+                            </p>
+                        </div>
+
+                        <!-- 위도별 3대 도법 왜곡 대조표 카드 -->
+                        <div class="card comparison-card" id="distortion-comparison-card">
+                            <h3>위도별 3대 도법 왜곡 대조표</h3>
+                            <p class="description" style="font-size: 0.74rem; line-height: 1.4; color: var(--text-secondary); margin-bottom: 6px;">
+                                각 위도(0°, 30°, 60°, 80°)에서 등각, 등적, 등거리 대표 도법별 면적 왜곡률(배)과 형태 왜곡도(%)를 비교 대조합니다.
+                            </p>
+                            <div class="comparison-table-wrapper" style="margin-top: 4px;">
+                                <table class="comparison-table" style="text-align: center;">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="font-size: 0.7rem; background: rgba(15, 23, 42, 0.85); font-weight: 600; text-align: left;">위도</th>
+                                            <th colspan="2" class="conformal-header" style="color: #38bdf8; font-size: 0.7rem; font-weight: 600;">등각 (메르카토르)</th>
+                                            <th colspan="2" class="equalarea-header" style="color: #fb7185; font-size: 0.7rem; font-weight: 600;">등적 (몰바이데)</th>
+                                            <th colspan="2" class="equidistant-header" style="color: #fbbf24; font-size: 0.7rem; font-weight: 600;">등거 (정거원통)</th>
+                                        </tr>
+                                        <tr>
+                                            <th style="font-size: 0.62rem; padding: 4px;">면적</th>
+                                            <th style="font-size: 0.62rem; padding: 4px;">형태</th>
+                                            <th style="font-size: 0.62rem; padding: 4px;">면적</th>
+                                            <th style="font-size: 0.62rem; padding: 4px;">형태</th>
+                                            <th style="font-size: 0.62rem; padding: 4px;">면적</th>
+                                            <th style="font-size: 0.62rem; padding: 4px;">형태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="font-size: 0.7rem; font-weight: 600; text-align: left; color: #fff;">0° (적도)</td>
+                                            <td style="font-family: var(--font-mono);">1.00배</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">0%</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">1.00배</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">0%</td>
+                                            <td style="font-family: var(--font-mono);">1.00배</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">0%</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 0.7rem; font-weight: 600; text-align: left; color: #fff;">30° (중위도)</td>
+                                            <td style="font-family: var(--font-mono);">1.33배</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">0%</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">1.00배</td>
+                                            <td style="font-family: var(--font-mono);">15.5%</td>
+                                            <td style="font-family: var(--font-mono);">1.15배</td>
+                                            <td style="font-family: var(--font-mono);">15.5%</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 0.7rem; font-weight: 600; text-align: left; color: #fff;">60° (고위도)</td>
+                                            <td style="font-family: var(--font-mono);">4.00배</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">0%</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">1.00배</td>
+                                            <td style="font-family: var(--font-mono);">100.0%</td>
+                                            <td style="font-family: var(--font-mono);">2.00배</td>
+                                            <td style="font-family: var(--font-mono);">100.0%</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 0.7rem; font-weight: 600; text-align: left; color: #fff;">80° (극지방)</td>
+                                            <td style="font-family: var(--font-mono); color: #fb7185;">33.16배</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">0%</td>
+                                            <td style="font-family: var(--font-mono); color: var(--color-success);">1.00배</td>
+                                            <td style="font-family: var(--font-mono); color: #fb7185;">475.9%</td>
+                                            <td style="font-family: var(--font-mono);">5.76배</td>
+                                            <td style="font-family: var(--font-mono); color: #fb7185;">475.9%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; padding-left: 2px;">
+                                💡 <strong>도법별 왜곡 원리 요약</strong>:<br>
+                                • <strong>등각도법(메르카토르)</strong>: 형태를 완전히 보존(왜곡 0%)하는 대신, 극지로 가며 면적이 <strong>33배 이상</strong> 기하급수적으로 폭증합니다.<br>
+                                • <strong>등적도법(몰바이데)</strong>: 면적비를 <strong>1.00배</strong>로 항상 완벽히 보존하는 대신, 고위도로 가며 극단적으로 타원처럼 찌그러집니다(80°에서 475.9% 왜곡).<br>
+                                • <strong>등거도법(정거원통)</strong>: 자오선을 따라 남북 거리가 일정하게 유지되나, 고위도 가로 확장으로 인해 가로 찌그러짐과 면적 왜곡이 동시에 일어납니다.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 2: 도형 시뮬레이터 -->
+                    <div class="tab-content" id="tab-geometry">
+                        <div class="card control-card">
+                            <h3>시뮬레이션 모드</h3>
+                            <div class="btn-group">
+                                <button class="btn btn-mode active" id="btn-mode-tissot">팃소의 지시타원 (기본)</button>
+                                <button class="btn btn-mode" id="btn-mode-shapes">커스텀 도형 그리기</button>
+                            </div>
+                            <p class="help-text" id="mode-help-text">
+                                **팃소의 지시타원(Tissot's Indicatrix)**: 지구 전역에 가상의 같은 크기 원들을 그린 후, 도법에 따라 이 원들이 어떻게 타원으로 찌그러지고 확대되는지 관찰합니다.
+                            </p>
+                        </div>
+
+                        <!-- 팃소 지시타원 컨트롤 -->
+                        <div id="tissot-controls" class="control-subpanel">
+                            <div class="card slider-card">
+                                <label for="tissot-size-slider">원 반지름 (도법 단위): <span id="tissot-size-val">5°</span></label>
+                                <input type="range" id="tissot-size-slider" min="2" max="15" value="5" step="1">
+                                
+                                <label for="tissot-density-slider">배치 조밀도: <span id="tissot-density-val">30°</span></label>
+                                <input type="range" id="tissot-density-slider" min="15" max="45" value="30" step="5">
+                            </div>
+                        </div>
+
+                        <!-- 커스텀 도형 컨트롤 -->
+                        <div id="shapes-controls" class="control-subpanel hidden">
+                            <div class="card shapes-picker-card">
+                                <h3>도형 템플릿 선택</h3>
+                                <div class="template-grid">
+                                    <button class="btn-template active" data-template="equator-circles">적도와 극지의 원 비교</button>
+                                    <button class="btn-template" data-template="greenland-africa">그린란드 vs 아프리카 면적</button>
+                                    <button class="btn-template" data-template="rectangles">구면 격자 사각형 비교</button>
+                                    <button class="btn-template" data-template="bermuda-triangle">다각형 다중 비교 (3~10각)</button>
+                                    <button class="btn-template" data-template="equator-straddle">적도 위아래 걸침 도형</button>
+                                    <button class="btn-template" data-template="meridian-strip">남북 종단 거대 띠 (±80°)</button>
+                                    <button class="btn-template" data-template="user-draw">직접 그리기 모드</button>
+                                </div>
+                                <div id="draw-instructions" class="hidden-instructions hidden">
+                                    <p class="draw-tip">💡 <strong>그리기 방법</strong>: 2D 평면 지도나 3D 지구본 위를 클릭하여 꼭짓점들을 지정하세요. '도형 완성' 버튼을 누르면 다각형이 닫힙니다.</p>
+                                    <div class="draw-actions">
+                                        <button class="btn btn-primary" id="btn-finish-polygon">도형 완성</button>
+                                        <button class="btn btn-danger" id="btn-clear-polygon">초기화</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 실시간 왜곡 분석 수치 -->
+                            <div class="card distortion-info-card">
+                                <h3>도형 분석 데이터</h3>
+                                <div class="info-table">
+                                    <div class="info-row">
+                                        <span class="info-label">실제 구면 면적</span>
+                                        <span class="info-value" id="geom-real-area">0 km²</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">평면 지도 겉보기 면적</span>
+                                        <span class="info-value" id="geom-map-area">0 px²</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">면적 왜곡 배율 (평면/구면)</span>
+                                        <span class="info-value text-highlight" id="geom-area-ratio">1.00배</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">원형 왜곡도 (종횡비 편차)</span>
+                                        <span class="info-value text-highlight" id="geom-distortion">0.00%</span>
+                                    </div>
+                                </div>
+                                <div class="card-desc">
+                                    <p id="distortion-detailed-desc">
+                                        템플릿을 선택하거나 지도를 클릭하여 도형을 그려보세요. 구면상의 원이 평면에서 어떻게 찌그러지는지(등각도법에서는 원으로 남지만 고위도에서 무한정 비대해지며, 등적도법에서는 면적은 같지만 길쭉한 타원으로 변합니다) 실시간 수치로 비교됩니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- 메인 로직 스크립트 -->
+    <script src="app.js"></script>
+</body>
+</html>
