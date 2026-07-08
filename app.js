@@ -5,7 +5,7 @@ const state = {
     rotation: [0, 0, 0], // lambda (경도), phi (위도), gamma (회전)
     projectionName: 'mercator',
     simulationMode: 'tissot', // 'tissot' (지시타원) 또는 'shapes' (커스텀/템플릿 도형)
-    tissotSize: 5,            // 팃소 지시타원 반지름 (도 단위)
+    tissotSize: 4.4966,       // 팃소 지시타원 반지름 (도 단위, 약 500km에 매칭)
     tissotDensity: 30,        // 팃소 원의 배치 간격 (도 단위)
     activeTemplate: 'equator-circles', // 'equator-circles', 'greenland-africa', 'bermuda-triangle', 'user-draw'
     userPolygonPoints: [],    // 사용자가 그린 다각형 경위도 점들 [[lon, lat], ...]
@@ -351,8 +351,8 @@ function renderCustomShapes() {
     let focusedShape = null; // 왜곡 지표 계산의 대상이 될 대표 도형
 
     if (state.activeTemplate === 'equator-circles') {
-        // 1. 적도와 극지의 원 비교
-        const r = 8;
+        // 1. 적도와 극지의 원 비교 - 반경 500km(각도 4.4966도)로 통일
+        const r = 4.4966;
         const pts = [
             { center: [0, 0], label: "적도의 원" },
             { center: [0, 45], label: "중위도의 원" },
@@ -373,9 +373,8 @@ function renderCustomShapes() {
         });
 
     } else if (state.activeTemplate === 'greenland-africa') {
-        // 2. 그린란드 vs 아프리카 면적 왜곡 비교 (동일한 크기의 가상 면적 디스크)
-        // 두 지역에 동일한 실제 면적(구면 반경 10도 원)을 투영하여 평면상에서의 크기 차이를 실시간 비교합니다.
-        const r = 10;
+        // 2. 그린란드 vs 아프리카 면적 왜곡 비교 (동일한 크기의 가상 면적 디스크 - 반경 500km로 수정)
+        const r = 4.4966;
         const featGreenland = {
             type: "Feature",
             geometry: d3.geoCircle().center([-40, 72]).radius(r)(),
@@ -429,21 +428,23 @@ function renderCustomShapes() {
             if (c.sides === 5) focusedShape = polyFeat;
         });
     } else if (state.activeTemplate === 'rectangles') {
-        // 4. 구면 상의 사각형 비교 (가로 30도, 세로 30도) - 촘촘한 세그먼트로 격자선 보간
-        const rectEquator = createInterpolatedRect(-15, 15, -15, 15, "적도의 사각형", "rect-equator");
-        const rectHigh = createInterpolatedRect(-15, 15, 45, 75, "고위도의 사각형", "rect-high");
+        // 4. 구면 상의 사각형 비교 (물리 한 변 1000km 정사각형 규격 보정)
+        // 적도 사각형: 가로/세로 폭 8.983도
+        const rectEquator = createInterpolatedRect(-4.4915, 4.4915, -4.4915, 4.4915, "적도의 사각형", "rect-equator");
+        // 고위도 사각형(위도 60도): 세로 폭 8.983도, 가로 폭 17.966도 (위도 코사인 보정 2배)
+        const rectHigh = createInterpolatedRect(-8.983, 8.983, 55.5085, 64.4915, "고위도의 사각형", "rect-high");
         shapes.push(rectEquator, rectHigh);
         focusedShape = rectHigh;
     } else if (state.activeTemplate === 'equator-straddle') {
         // 5. 적도 위아래로 걸쳐지는 도형 세트 (원, 사각형, 다각형 각각 1개씩 적도 대칭 배치)
         const straddleCircle = {
             type: "Feature",
-            geometry: d3.geoCircle().center([0, 0]).radius(12)(),
+            geometry: d3.geoCircle().center([0, 0]).radius(4.4966)(),
             properties: { label: "적도 걸침 원", id: "circle-straddle" }
         };
         
-        // 사각형: 경도 -40 ~ -10도 범위 (서아프리카) -> 촘촘한 격자 보간 적용
-        const straddleRect = createInterpolatedRect(-65, -5, -12, 12, "적도 걸침 사각형", "rect-straddle");
+        // 사각형: 물리 한 변 1000km 정사각형 (서경 -35도 중심 오프셋 반영 -> 경도 -39.4915 ~ -30.5085도 범위)
+        const straddleRect = createInterpolatedRect(-39.4915, -30.5085, -4.4915, 4.4915, "적도 걸침 사각형", "rect-straddle");
         
         const straddlePoly = {
             type: "Feature",
@@ -485,8 +486,8 @@ function renderCustomShapes() {
         };
         shapes.push(meridianRect);
         
-        // B. 종단을 따라 배열된 크기 비교용 원들 (남북 종단을 따라 팽창하는 상태 체감)
-        const r = 6;
+        // B. 종단을 따라 배열된 크기 비교용 원들 (남북 종단을 따라 팽창하는 상태 체감 - 반경 500km로 수정)
+        const r = 4.4966;
         const latitudes = [-70, -45, -20, 0, 20, 45, 70];
         latitudes.forEach((lat, idx) => {
             const circleGen = d3.geoCircle().center([0, lat]).radius(r);
@@ -711,12 +712,12 @@ function calculateDistortion(feature) {
         let realAreaKm2 = 0;
         const id = (feature.properties && feature.properties.id) ? feature.properties.id : "";
         
-        if (id.startsWith('circle') || id === 'greenland' || id === 'africa') {
+        if (id.startsWith('circle') || id === 'greenland' || id === 'africa' || id.startsWith('tissot')) {
             // 1. 구면 원 지오메트리 면적 수학 공식: S = 2 * PI * R^2 * (1 - cos(theta))
-            let rDeg = 5; // tissot 기본 반지름
-            if (state.activeTemplate === 'equator-circles' || state.activeTemplate === 'greenland-africa') rDeg = 10;
-            else if (state.activeTemplate === 'equator-straddle') rDeg = 12;
-            else if (state.activeTemplate === 'meridian-strip') rDeg = 6;
+            let rDeg = 4.4966; // 템플릿 원들은 물리 반지름 500km(4.4966도)로 일괄 고정
+            if (id.startsWith('tissot')) {
+                rDeg = state.tissotSize; // 팃소 지시타원은 슬라이더 크기에 비례
+            }
             
             const theta = rDeg * Math.PI / 180;
             realAreaKm2 = 2 * Math.PI * 6371 * 6371 * (1 - Math.cos(theta));
@@ -1133,7 +1134,9 @@ function setupInteractions() {
     // G. 팃소 지시타원 조절 슬라이더 리스너
     d3.select("#tissot-size-slider").on("input", function() {
         state.tissotSize = +this.value;
-        d3.select("#tissot-size-val").text(`${state.tissotSize}°`);
+        // 구면거리 공식 d = 6371 * (theta * PI / 180) 환산
+        const kmVal = Math.round(6371 * (state.tissotSize * Math.PI / 180));
+        d3.select("#tissot-size-val").text(`${state.tissotSize}° (약 ${kmVal}km)`);
         if (state.simulationMode === 'tissot') renderTissot();
     });
 
