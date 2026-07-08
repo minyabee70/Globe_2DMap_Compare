@@ -15,6 +15,56 @@
     <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
 </head>
 <body>
+    <!-- 메인 소개 및 학습 가이드 인트로 오버레이 스크린 -->
+    <div class="intro-overlay" id="intro-screen">
+        <div class="intro-card">
+            <div class="intro-header">
+                <span class="intro-logo">🌍</span>
+                <h2>지구본 vs 평면도법</h2>
+                <h3>투영의 과학과 공간 왜곡 분석 시뮬레이터</h3>
+            </div>
+            
+            <div class="intro-body">
+                <p class="intro-intro-text">
+                    3차원 구면체인 지구의 표면을 형태와 면적 모두 왜곡 없이 2차원 평면 지도로 펼쳐내는 것은 <strong>가우스의 빼어난 정리 (Theorema Egregium)</strong>에 의해 기하학적으로 불가능합니다. 본 시뮬레이터는 지구본(3D)과 평면 지도(2D) 사이의 왜곡 격차를 정량적인 구면 기하 수학 공식과 지시 도형들을 통해 생생하게 실시간 관찰하고 대조 학습하도록 설계되었습니다.
+                </p>
+                
+                <div class="intro-features-grid">
+                    <div class="intro-feature-card">
+                        <div class="feat-icon">🌐</div>
+                        <h4>팃소의 지시타원</h4>
+                        <p>지구 전역에 반지름 500km의 가상 원들을 배치하여 도법별 위도에 따른 찌그러짐과 면적의 팽창을 관찰합니다.</p>
+                    </div>
+                    <div class="intro-feature-card">
+                        <div class="feat-icon">📊</div>
+                        <h4>위도대별 도형 대조</h4>
+                        <p>동일한 물리 규격(반경 500km 원, 한 변 1000km 사각형, 정다각형)이 적도, 중위도, 고위도에서 왜곡되는 차이를 대조 분석합니다.</p>
+                    </div>
+                    <div class="intro-feature-card">
+                        <div class="feat-icon">✏️</div>
+                        <h4>실시간 구면 드로잉</h4>
+                        <p>지도를 클릭해 자유 다각형을 그리고, 평면 겉보기 픽셀 면적(px²)과 실제 구면 면적(km²)의 편차를 실시간 산출합니다.</p>
+                    </div>
+                </div>
+                
+                <div class="intro-guide-box">
+                    <strong>💡 조작 가이드</strong>: 
+                    • 마우스로 지구본/지도를 드래그하여 회전시킵니다.<br>
+                    • 마우스 휠로 3D/2D 화면을 동시에 동기화 확대/축소할 수 있습니다.<br>
+                    • 우측 대시보드에서 도법별 실시간 수치 및 위도대별 3대 도법 왜곡 대조표를 확인하세요.
+                </div>
+            </div>
+            
+            <div class="intro-footer">
+                <button class="btn-start-simulation" id="btn-close-intro">시뮬레이션 시작하기</button>
+                <div class="intro-copyright">
+                    <span>만든이 : 김민엽 (minyabee@naver.com)</span><br>
+                    <span>© 2026 지구본 vs 평면도법 공간 왜곡 분석 시뮬레이터. All Rights Reserved.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- 헤더 영역 -->
         <header class="app-header">
@@ -23,6 +73,10 @@
                 <h1>지구본 vs 평면도법 <span>투영의 과학과 공간 왜곡 분석</span></h1>
             </div>
             <div class="header-controls" style="display: flex; align-items: center; gap: 16px;">
+                <!-- 전역 도움말 및 소개 토글 버튼 -->
+                <button id="btn-show-intro" style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0, 194, 255, 0.3); color: var(--color-accent); font-size: 0.72rem; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: var(--transition-smooth); outline: none;">
+                    <span>ℹ️</span> 도움말 / 소개
+                </button>
                 <!-- 전역 폰트 크기 조절기 -->
                 <div class="font-size-control" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.04); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(0, 194, 255, 0.15);">
                     <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;">글꼴 크기:</span>
@@ -335,6 +389,10 @@
                 </div>
             </section>
         </main>
+        <!-- 시스템 하단 크레딧 푸터 -->
+        <footer class="app-footer-credit" style="text-align: center; font-size: 0.65rem; color: var(--text-muted); padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.03); background: rgba(6, 9, 19, 0.4); margin-top: 5px;">
+            만든이 : 김민엽 (minyabee@naver.com) | © 2026 지구본 vs 평면도법 공간 왜곡 분석 시뮬레이터. All Rights Reserved.
+        </footer>
     </div>
     
     <!-- 메인 로직 스크립트 -->

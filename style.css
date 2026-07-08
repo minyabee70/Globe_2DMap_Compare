@@ -952,3 +952,185 @@ svg {
 .comparison-table td.prop.equidistant {
     color: #fbbf24; /* 등거: 오렌지 골드 */
 }
+
+/* 인트로 소개 오버레이 */
+.intro-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(6, 9, 19, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+    opacity: 1;
+    visibility: visible;
+}
+
+.intro-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.intro-card {
+    background: rgba(11, 19, 43, 0.65);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 820px;
+    padding: 40px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 240, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    animation: introCardEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes introCardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.intro-header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.intro-logo {
+    font-size: 3rem;
+    animation: floatLogo 4s ease-in-out infinite;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+@keyframes floatLogo {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(5deg); }
+}
+
+.intro-header h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #fff 30%, #00f0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.intro-header h3 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+
+.intro-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.intro-intro-text {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.intro-features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.intro-feature-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: var(--transition-smooth);
+}
+
+.intro-feature-card:hover {
+    background: rgba(0, 240, 255, 0.04);
+    border-color: rgba(0, 240, 255, 0.2);
+    transform: translateY(-4px);
+}
+
+.feat-icon {
+    font-size: 1.8rem;
+}
+
+.intro-feature-card h4 {
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: 600;
+}
+
+.intro-feature-card p {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.intro-guide-box {
+    background: rgba(0, 240, 255, 0.03);
+    border-left: 3px solid var(--color-accent);
+    padding: 15px;
+    border-radius: 4px 8px 8px 4px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.intro-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn-start-simulation {
+    background: var(--color-accent-gradient);
+    color: #060913;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+    transition: var(--transition-smooth);
+    letter-spacing: 0.5px;
+}
+
+.btn-start-simulation:hover {
+    box-shadow: 0 6px 30px rgba(0, 240, 255, 0.6), 0 0 15px rgba(0, 240, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.intro-copyright {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.5;
+}

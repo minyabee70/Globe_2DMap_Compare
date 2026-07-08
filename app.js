@@ -389,9 +389,9 @@ function renderCustomShapes() {
         focusedShape = featGreenland; // 그린란드를 포커싱하여 아프리카 대비 면적이 얼마나 비대해지는지 산출
 
     } else if (state.activeTemplate === 'bermuda-triangle') {
-        // 3. 다각형 다중 비교 (3각 ~ 10각 정다각형군 구면 생성)
-        const radius = 6.5; // 다각형의 반지름 (도 단위)
-        const lat0 = 32;   // 중심 위도 고정
+        // 3. 다각형 다중 비교 (3각 ~ 10각 정다각형군을 위도별 3개 행렬 그리드로 확장 배치)
+        const radius = 4.4966; // 다각형의 반지름 (도 단위, 물리 반경 500km 매칭)
+        const lats = [0, 45, 70]; // 적도, 중위도, 고위도 3개 위도선 고정
         const centers = [
             { lon: -85, sides: 3, label: "삼각형" },
             { lon: -60, sides: 4, label: "사각형" },
@@ -402,38 +402,46 @@ function renderCustomShapes() {
             { lon: 65,  sides: 9, label: "구각형" },
             { lon: 90,  sides: 10, label: "십각형" }
         ];
-        
-        const cosLat = Math.cos(lat0 * Math.PI / 180);
-        
-        centers.forEach((c, idx) => {
-            const coords = [];
-            for (let i = 0; i <= c.sides; i++) {
-                const angle = - (i * 2 * Math.PI) / c.sides - Math.PI / 2; // 반시계 방향 회전으로 반전
-                const ptLon = c.lon + (radius * Math.cos(angle)) / cosLat;
-                const ptLat = lat0 + radius * Math.sin(angle);
-                coords.push([ptLon, ptLat]);
-            }
+
+        lats.forEach(latVal => {
+            const cosLat = Math.cos(latVal * Math.PI / 180);
+            const latLabel = latVal === 0 ? "적도" : latVal === 45 ? "중위도" : "고위도";
             
-            const polyFeat = {
-                type: "Feature",
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [coords]
-                },
-                properties: { label: c.label, id: `poly-${c.sides}` }
-            };
-            shapes.push(polyFeat);
-            
-            // 기본 포커스 분석은 중앙 오각형(sides: 5)으로 지정
-            if (c.sides === 5) focusedShape = polyFeat;
+            centers.forEach((c) => {
+                const coords = [];
+                for (let i = 0; i <= c.sides; i++) {
+                    const angle = - (i * 2 * Math.PI) / c.sides - Math.PI / 2; // 반시계 방향 회전
+                    const ptLon = c.lon + (radius * Math.cos(angle)) / cosLat;
+                    const ptLat = latVal + radius * Math.sin(angle);
+                    coords.push([ptLon, ptLat]);
+                }
+                
+                const polyFeat = {
+                    type: "Feature",
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [coords]
+                    },
+                    properties: { 
+                        label: `${latLabel} ${c.label}`, 
+                        id: `poly-${c.sides}-${latVal}` 
+                    }
+                };
+                shapes.push(polyFeat);
+                
+                // 기본 포커스 분석은 적도의 오각형으로 지정
+                if (c.sides === 5 && latVal === 0) focusedShape = polyFeat;
+            });
         });
     } else if (state.activeTemplate === 'rectangles') {
         // 4. 구면 상의 사각형 비교 (물리 한 변 1000km 정사각형 규격 보정)
         // 적도 사각형: 가로/세로 폭 8.983도
         const rectEquator = createInterpolatedRect(-4.4915, 4.4915, -4.4915, 4.4915, "적도의 사각형", "rect-equator");
+        // 중위도 사각형(위도 45도): 세로 폭 8.983도, 가로 폭 12.704도 (위도 코사인 보정 1.414배)
+        const rectMiddle = createInterpolatedRect(-6.352, 6.352, 40.5085, 49.4915, "중위도의 사각형", "rect-middle");
         // 고위도 사각형(위도 60도): 세로 폭 8.983도, 가로 폭 17.966도 (위도 코사인 보정 2배)
         const rectHigh = createInterpolatedRect(-8.983, 8.983, 55.5085, 64.4915, "고위도의 사각형", "rect-high");
-        shapes.push(rectEquator, rectHigh);
+        shapes.push(rectEquator, rectMiddle, rectHigh);
         focusedShape = rectHigh;
     } else if (state.activeTemplate === 'equator-straddle') {
         // 5. 적도 위아래로 걸쳐지는 도형 세트 (원, 사각형, 다각형 각각 1개씩 적도 대칭 배치)
@@ -570,7 +578,7 @@ function classMapper(d) {
     else if (id.startsWith('tissot')) baseClass = "geo-circle";
     else if (id === 'greenland' || id === 'africa') baseClass = "geo-circle-filled";
     else if (id.startsWith('rect')) baseClass = "geo-rect";
-    else if (id === 'bermuda') baseClass = "geo-poly";
+    else if (id.startsWith('poly') || id === 'bermuda') baseClass = "geo-poly";
     
     // 만약 선택된 도형이면 하이라이트 클래스 덧붙임
     if (state.selectedShapeId && id === state.selectedShapeId) {
@@ -901,20 +909,20 @@ function calculateDistortion(feature) {
             detailedDesc += `현재 도법에서 고위도 그린란드원의 면적 왜곡률은 적도 대비 <strong>${areaRatio.toFixed(2)}배</strong>로 나타납니다.`;
         }
     } else if (state.activeTemplate === 'bermuda-triangle') {
-        detailedDesc = `<strong>'${labelName}' 분석 결과:</strong> 구면상에서 대칭 구조를 띄도록 생성된 N각형 중 클릭하여 선택하신 다각형의 왜곡 지표입니다. `;
+        detailedDesc = `<strong>'${labelName}' 분석 결과:</strong> 위도대별(적도, 중위도, 고위도) 및 꼭짓점 수(3각~10각)에 따라 행렬 그리드로 나열된 다각형 중 하나를 분석한 결과입니다. `;
         if (state.projectionName === 'mercator') {
-            detailedDesc += `메르카토르 도법 상에서 다각형들의 외곽 각도(정다각형의 내각)는 등각성 덕분에 구면과 동일하게 완전히 유지됩니다. 다만, 위도 32도 부근에 위치함에 따라 면적이 적도 대비 <strong>${areaRatio.toFixed(2)}배</strong> 소폭 확대되어 표출됩니다. 꼭짓점 개수가 늘어남(3각→10각)에 따라 정다각형이 점차 원형에 수렴해 가며, 도법 왜곡 양상도 원의 투영과 동일해지는 과정을 관찰할 수 있습니다.`;
+            detailedDesc += `메르카토르 도법 상에서 다각형들은 등각성 덕분에 고유의 외각 각도는 완벽하게 유지되지만, 위도가 상승할수록 면적이 무한정 확대됩니다. 현재 선택한 다각형은 적도 대비 면적이 <strong>${areaRatio.toFixed(2)}배</strong> 거대해졌습니다. 꼭짓점 수(3~10각)가 늘어남에 따라 정다각형이 서서히 원에 수렴해 가는 기하학적 수렴성을 함께 확인할 수 있습니다.`;
         } else if (state.projectionName === 'mollweide') {
             detailedDesc += `몰바이데 등적도법은 면적이 1.00배로 정확하게 유지되지만, 중심 경위도의 곡률 영향에 따라 다각형의 형태가 <strong>${shapeDistortion.toFixed(1)}%</strong> 찌그러져 럭비공처럼 좌우로 길쭉한 형상이 됩니다.`;
         } else {
             detailedDesc += `현재 선택된 도법에 의해 면적은 <strong>${areaRatio.toFixed(2)}배</strong> 왜곡되었으며, 형태 찌그러짐은 <strong>${shapeDistortion.toFixed(1)}%</strong>로 렌더링되고 있습니다.`;
         }
     } else if (state.activeTemplate === 'rectangles') {
-        detailedDesc = `<strong>'${labelName}' 분석 결과:</strong> 구면상에서 동일한 면적 범위를 갖는 적도와 고위도의 사각형 영역을 투영한 결과입니다. `;
+        detailedDesc = `<strong>'${labelName}' 분석 결과:</strong> 구면상에서 동일한 한 변 1000km 정사각형 크기를 갖는 적도, 중위도, 고위도의 사각형 영역을 대조 투영한 결과입니다. `;
         if (state.projectionName === 'mercator') {
             detailedDesc += `메르카토르 도법에서 사각형들은 형태 왜곡이 전혀 없어 여전히 직사각형 모양을 유지하지만, 고위도의 사각형은 세로 격자 크기가 극적으로 확장되어 적도 대비 <strong>${areaRatio.toFixed(1)}배</strong> 비대해진 것을 관찰할 수 있습니다.`;
         } else if (state.projectionName === 'mollweide') {
-            detailedDesc += `몰바이데 등적도법은 면적이 항상 1.00배(0% 왜곡)로 완전 보존됩니다. 적도 사각형과 고위도 사각형의 면적은 시각적으로 정확히 같지만, 고위도 사각형은 경도선 수렴으로 인해 부채꼴/사다리꼴 형태로 <strong>${shapeDistortion.toFixed(1)}%</strong> 찌그러집니다.`;
+            detailedDesc += `몰바이데 등적도법은 면적이 항상 1.00배(0% 왜곡)로 완전 보존됩니다. 세 사각형의 실제 면적은 같지만, 위도가 높아질수록 경도선 수렴으로 인해 부채꼴/사다리꼴 형태로 <strong>${shapeDistortion.toFixed(1)}%</strong> 찌그러집니다.`;
         } else {
             detailedDesc += `현재 선택된 도법에 의해 면적은 <strong>${areaRatio.toFixed(2)}배</strong> 왜곡되었으며, 형태는 <strong>${shapeDistortion.toFixed(1)}%</strong> 만큼 변형되었습니다.`;
         }
@@ -1306,4 +1314,13 @@ function setupInteractions() {
             d3.select("#legend-poly").classed("active", true);
         }
     }
+
+    // L. 인트로 오버레이 화면 제어 리스너
+    d3.select("#btn-close-intro").on("click", () => {
+        d3.select("#intro-screen").classed("hidden", true);
+    });
+
+    d3.select("#btn-show-intro").on("click", () => {
+        d3.select("#intro-screen").classed("hidden", false);
+    });
 }
