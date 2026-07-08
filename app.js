@@ -799,7 +799,8 @@ function calculateDistortion(feature) {
     const refRadius = 1; // 1도 원
     const refCircle = d3.geoCircle().center([0, 0]).radius(refRadius)();
     const refSphereArea = d3.geoArea(refCircle) * 6371 * 6371;
-    const refPixelCoords = refCircle.geometry.coordinates[0].map(pt => activeProj(pt)).filter(pt => pt !== null);
+    const refCoords = refCircle.geometry ? refCircle.geometry.coordinates[0] : refCircle.coordinates[0];
+    const refPixelCoords = refCoords.map(pt => activeProj(pt)).filter(pt => pt !== null);
     let refPxArea = 0;
     if (refPixelCoords.length >= 3) {
         let j = refPixelCoords.length - 1;
