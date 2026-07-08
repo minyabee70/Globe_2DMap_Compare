@@ -27,6 +27,10 @@
     --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+html {
+    font-size: 14px; /* rem 폰트 크기 조절의 기준점 */
+}
+
 /* 기본 스타일 */
 * {
     box-sizing: border-box;

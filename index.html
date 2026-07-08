@@ -22,8 +22,16 @@
                 <span class="icon">🌍</span>
                 <h1>지구본 vs 평면도법 <span>투영의 과학과 공간 왜곡 분석</span></h1>
             </div>
-            <div class="header-status">
-                <span id="loading-indicator" class="badge loading">데이터 로딩 중...</span>
+            <div class="header-controls" style="display: flex; align-items: center; gap: 16px;">
+                <!-- 전역 폰트 크기 조절기 -->
+                <div class="font-size-control" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.04); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(0, 194, 255, 0.15);">
+                    <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;">글꼴 크기:</span>
+                    <input type="range" id="font-size-slider" min="11" max="19" value="14" step="1" style="width: 75px; height: 4px; cursor: pointer; accent-color: var(--color-accent);">
+                    <span id="font-size-val" style="font-size: 0.72rem; font-family: var(--font-mono); color: var(--color-accent); font-weight: 600; min-width: 32px; text-align: right;">14px</span>
+                </div>
+                <div class="header-status">
+                    <span id="loading-indicator" class="badge loading">데이터 로딩 중...</span>
+                </div>
             </div>
         </header>
 

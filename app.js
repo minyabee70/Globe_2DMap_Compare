@@ -1132,6 +1132,13 @@ function setupInteractions() {
         updateViews();
     });
 
+    // G-2. 전역 글꼴 크기 조절 슬라이더 리스너
+    d3.select("#font-size-slider").on("input", function() {
+        const size = +this.value;
+        d3.select("html").style("font-size", size + "px");
+        d3.select("#font-size-val").text(size + "px");
+    });
+
     // G. 팃소 지시타원 조절 슬라이더 리스너
     d3.select("#tissot-size-slider").on("input", function() {
         state.tissotSize = +this.value;
