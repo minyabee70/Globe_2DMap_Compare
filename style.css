@@ -1129,8 +1129,8 @@ svg {
 }
 
 .intro-copyright {
-    font-size: 0.65rem;
-    color: var(--text-muted);
+    font-size: 0.82rem;
+    color: rgba(203, 213, 225, 0.85);
     text-align: center;
-    line-height: 1.5;
+    line-height: 1.6;
 }
