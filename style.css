@@ -1376,3 +1376,19 @@ svg {
     border: 1px solid rgba(0, 240, 255, 0.15);
     display: block;
 }
+
+/* 글꼴 크기 조절 버튼 인터랙티브 스타일 */
+.font-size-control button {
+    transition: var(--transition-smooth) !important;
+}
+
+.font-size-control button:hover {
+    background: rgba(0, 240, 255, 0.2) !important;
+    border-color: rgba(0, 240, 255, 0.6) !important;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    color: #fff !important;
+}
+
+.font-size-control button:active {
+    transform: scale(0.85);
+}

@@ -1146,12 +1146,35 @@ function setupInteractions() {
         updateViews();
     });
 
-    // G-2. 전역 글꼴 크기 조절 슬라이더 리스너
-    d3.select("#font-size-slider").on("input", function() {
-        const size = +this.value;
-        d3.select("html").style("font-size", size + "px");
-        d3.select("#font-size-val").text(size + "px");
+    // G-2. 전역 글꼴 크기 증감 조절 리스너 (+/- 버튼형)
+    let currentFontSize = 16;
+    const MIN_FONT_SIZE = 12;
+    const MAX_FONT_SIZE = 22;
+
+    function applyFontSize(size) {
+        currentFontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, size));
+        d3.select("html").style("font-size", `${currentFontSize}px`);
+        d3.select("#font-size-val").text(`${currentFontSize}px`);
+        
+        // 버튼 불투명도를 이용한 비활성 한계 상태 표시
+        d3.select("#btn-font-decrease")
+            .style("opacity", currentFontSize === MIN_FONT_SIZE ? "0.35" : "1.0")
+            .style("pointer-events", currentFontSize === MIN_FONT_SIZE ? "none" : "auto");
+        d3.select("#btn-font-increase")
+            .style("opacity", currentFontSize === MAX_FONT_SIZE ? "0.35" : "1.0")
+            .style("pointer-events", currentFontSize === MAX_FONT_SIZE ? "none" : "auto");
+    }
+
+    d3.select("#btn-font-decrease").on("click", () => {
+        applyFontSize(currentFontSize - 1);
     });
+
+    d3.select("#btn-font-increase").on("click", () => {
+        applyFontSize(currentFontSize + 1);
+    });
+    
+    // 최초 실행 적용
+    applyFontSize(currentFontSize);
 
     // G. 팃소 지시타원 조절 슬라이더 리스너
     d3.select("#tissot-size-slider").on("input", function() {
