@@ -1392,3 +1392,43 @@ svg {
 .font-size-control button:active {
     transform: scale(0.85);
 }
+
+/* 정합성 분석 시뮬레이터 요소 스타일 */
+.math-limit-circle {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.visual-buffer-circle {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+}
+
+.click-dot {
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#bg-conformal-status, #bg-equidistant-status {
+    font-size: 0.76rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    min-height: 22px;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.status-match {
+    text-shadow: 0 0 8px var(--color-success);
+    color: var(--color-success) !important;
+}
+
+.status-mismatch {
+    text-shadow: 0 0 8px var(--color-danger);
+    color: var(--color-danger) !important;
+}

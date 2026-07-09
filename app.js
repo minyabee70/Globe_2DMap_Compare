@@ -1405,4 +1405,120 @@ function setupInteractions() {
             .style("transform", `scale(${eqDistWidth}, ${eqDistHeight})`);
         d3.select("#equidistant-note").text(`가로: ${eqDistWidth.toFixed(1)}배 (남북 거리 보존)`);
     }
+
+    // N. 시스템 개발 배경 및 정합성 모달 제어
+    d3.select("#btn-show-bg-desc").on("click", () => {
+        d3.select("#system-bg-modal").classed("hidden", false);
+        // 슬라이더 초기화
+        d3.select("#bg-lat-slider").property("value", 0);
+        updateBgSimulator(0);
+        
+        // 클릭 도트 및 라벨 초기화
+        d3.selectAll(".click-dot").style("display", "none");
+        d3.select("#bg-conformal-status").text("[ 원 내부를 클릭해 보세요 ]").attr("class", "box-note");
+        d3.select("#bg-equidistant-status").text("[ 원 내부를 클릭해 보세요 ]").attr("class", "box-note");
+    });
+
+    d3.select("#btn-close-bg-modal").on("click", () => {
+        d3.select("#system-bg-modal").classed("hidden", true);
+    });
+
+    d3.select("#system-bg-modal").on("click", function(event) {
+        if (event.target === this) {
+            d3.select(this).classed("hidden", true);
+        }
+    });
+
+    // 정합성 슬라이더 변경 리스너
+    d3.select("#bg-lat-slider").on("input", function() {
+        updateBgSimulator(+this.value);
+    });
+
+    function updateBgSimulator(lat) {
+        d3.select("#bg-lat-val").text(`${lat}°` + (lat === 0 ? " (적도 부근)" : lat >= 60 ? " (고위도 극지방)" : " (중위도)"));
+        const rad = lat * Math.PI / 180;
+        const cosVal = Math.cos(rad);
+        
+        // 1. 보정 전 (등각도법 왜곡): 위도 상승 시 visual 원주 스케일이 시컨트 배율로 팽창
+        const conformalScale = Math.min(3.5, 1 / cosVal);
+        d3.select("#bg-visual-conformal")
+            .style("transform", `translate(-50%, -50%) scale(${conformalScale})`);
+
+        // 2. 보정 후 (360도 전방위 동거리 정합): 위도와 무관하게 1.0 고정 (정원 표준화)
+        d3.select("#bg-visual-equidistant")
+            .style("transform", "translate(-50%, -50%) scale(1)");
+            
+        // 클릭 상태 초기화
+        d3.selectAll(".click-dot").style("display", "none");
+        d3.select("#bg-conformal-status").text("[ 원 내부를 클릭해 보세요 ]").attr("class", "box-note");
+        d3.select("#bg-equidistant-status").text("[ 원 내부를 클릭해 보세요 ]").attr("class", "box-note");
+    }
+
+    // 클릭 판정 바인딩
+    handleBgClick("#bg-conformal-click-area", true);
+    handleBgClick("#bg-equidistant-click-area", false);
+
+    function handleBgClick(areaId, isConformal) {
+        const area = d3.select(areaId);
+        const node = area.node();
+        
+        area.on("click", function(event) {
+            if (event.target.id === "bg-lat-slider") return; // 슬라이더 방지
+            
+            const rect = node.getBoundingClientRect();
+            const container = area.select(".circle-container");
+            const cNode = container.node();
+            const cRect = cNode.getBoundingClientRect();
+            
+            const cx = cRect.width / 2;
+            const cy = cRect.height / 2;
+            
+            // 컨테이너 내 상대적 좌표
+            const clickX = event.clientX - cRect.left;
+            const clickY = event.clientY - cRect.top;
+            
+            // 유효 영역 제한
+            if (clickX < 0 || clickX > cRect.width || clickY < 0 || clickY > cRect.height) return;
+
+            const dot = area.select(".click-dot");
+            dot.style("left", `${clickX}px`)
+               .style("top", `${clickY}px`)
+               .style("display", "block");
+               
+            const dist = Math.sqrt((clickX - cx) ** 2 + (clickY - cy) ** 2);
+            const mathRadius = 20; // 실제 구면 판정 픽셀 반경 (고정 점선원의 반경)
+            
+            const statusText = area.select(".box-note");
+            
+            if (isConformal) {
+                const lat = +d3.select("#bg-lat-slider").property("value");
+                const rad = lat * Math.PI / 180;
+                const conformalScale = Math.min(3.5, 1 / Math.cos(rad));
+                const visualRadius = mathRadius * conformalScale;
+                
+                const isVisualIn = dist <= visualRadius;
+                const isMathIn = dist <= mathRadius;
+                
+                if (isVisualIn && !isMathIn) {
+                    statusText.html("❌ 불일치: 표출 포함 / 분석 제외 (왜곡 오류)")
+                              .attr("class", "box-note status-mismatch");
+                } else if (isVisualIn && isMathIn) {
+                    statusText.html("✅ 일치: 표출 포함 / 분석 포함 (정합)")
+                              .attr("class", "box-note status-match");
+                } else {
+                    statusText.html("✅ 일치: 표출 제외 / 분석 제외 (정합)")
+                              .attr("class", "box-note status-match");
+                }
+            } else {
+                const isIn = dist <= mathRadius;
+                if (isIn) {
+                    statusText.html("✅ 일치: 표출 포함 / 분석 포함 (정합)")
+                              .attr("class", "box-note status-match");
+                } else {
+                    statusText.html("✅ 일치: 표출 제외 / 분석 제외 (정합)")
+                              .attr("class", "box-note status-match");
+                }
+            }
+        });
+    }
 }

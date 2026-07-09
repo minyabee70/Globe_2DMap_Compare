@@ -73,6 +73,10 @@
                 <h1>지구본 vs 평면도법 <span>투영의 과학과 공간 왜곡 분석</span></h1>
             </div>
             <div class="header-controls" style="display: flex; align-items: center; gap: 16px;">
+                <!-- 시스템 개발 배경 및 정합성 버튼 -->
+                <button id="btn-show-bg-desc" style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0, 194, 255, 0.3); color: var(--color-accent); font-size: 0.72rem; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: var(--transition-smooth); outline: none;">
+                    <span>🎯</span> 정합성 분석 배경
+                </button>
                 <!-- 팃소 지시타원 상세 소개 버튼 -->
                 <button id="btn-show-tissot-desc" style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0, 194, 255, 0.3); color: var(--color-accent); font-size: 0.72rem; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: var(--transition-smooth); outline: none;">
                     <span>🌐</span> 팃소의 지시타원 소개
@@ -480,7 +484,101 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- 시스템 개발 배경 및 정합성 상세 설명 모달 -->
+    <div class="tissot-modal-overlay hidden" id="system-bg-modal">
+        <div class="tissot-modal-card" style="max-width: 1200px;">
+            <div class="tissot-modal-header">
+                <h2>🎯 시스템 분석 정합성 개발 배경 및 처리 방안</h2>
+                <button class="btn-close-modal" id="btn-close-bg-modal">×</button>
+            </div>
+            
+            <div class="tissot-modal-body">
+                <!-- 왼쪽: 개발 배경, 해결책 및 미니 인터랙티브 시뮬레이션 -->
+                <div class="tissot-modal-left" style="flex: 1.3;">
+                    <p class="tissot-desc-p">
+                        본 시뮬레이터의 개발 배경은 2D 투영지도 상의 버퍼(반경거리) 가시적 <strong>표출(Rendering) 범위</strong>와 GIS 엔진 내부의 수학적 <strong>분석(Analysis) 연산 범위</strong> 간의 기하학적 불일치(왜곡 오류) 문제를 증명하고 해결책을 제시하기 위한 목적에서 출발했습니다.
+                    </p>
+                    
+                    <div class="tissot-section">
+                        <h4 style="color: var(--color-danger);">🚨 기존의 문제점 (시각적 오해와 판정 불일치)</h4>
+                        <ul style="gap: 5px;">
+                            <li>기존 2D 평면 지도 렌더링 라이브러리들은 지도의 등각 특성(예: 메르카토르)에 맞춰 위도가 올라갈수록 <strong>시각적 버퍼 원형을 수십 배 이상 부풀려 렌더링</strong>했습니다.</li>
+                            <li>이로 인해, 지도 상에서는 특정 도시나 지점이 버퍼 범위 안에 **포함(Overlap)**된 것처럼 그려져 있으나, 실제 구면 수학을 기반으로 한 연산 분석에서는 **불포함(OutOfRange)**으로 판정하여 시스템 데이터와 시각 정보 간의 극단적인 괴리를 초래했습니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="tissot-section">
+                        <h4 style="color: var(--color-success);">💡 합의된 처리 방안 및 효과</h4>
+                        <ul style="gap: 5px;">
+                            <li><strong>분석 로직 유지</strong>: 구면 대원 거리 공식을 통한 실제 500km 반경 연산(수학적 판정)은 원시 구면체 기준으로 <strong>정밀하게 유지</strong>합니다.</li>
+                            <li><strong>표출 방식 변경 (360도 전방위 동거리 정합)</strong>: 2D 지도에 그릴 때는 도법 팽창률을 적용해 찌그러뜨리는 대신, 투영 중심점을 기준으로 **360도 모든 방향의 등거리 보정 배율**을 연산하여 지도 상에서 정합된 **정원(Circle)** 형태로 표출을 표준화했습니다.</li>
+                            <li><strong>기대 효과</strong>: 시각적으로 포함되어 보이는 영역과 실제 분석 알고리즘이 판단하는 공간 교차 영역이 **100% 완벽하게 부합**하게 됨으로써 시각적 오인 및 시스템 오판정 오류를 원천 차단했습니다.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 정합성 비교 미니 시뮬레이터 -->
+                    <div class="mini-sim-card" style="margin-top: 10px;">
+                        <h4 style="color: var(--color-accent);">🛠️ 전방위 동거리 보정 정합 시뮬레이터 (Click & Slide)</h4>
+                        <p class="mini-sim-p" style="margin-bottom: 8px;">슬라이더로 위도를 올린 후, 아래의 반경 박스 안쪽을 자유롭게 클릭하여 판정 일치 여부를 대조해 보세요.</p>
+                        
+                        <div class="mini-sim-control">
+                            <label for="bg-lat-slider">테스트 위도 조절: <span id="bg-lat-val">0° (적도 부근)</span></label>
+                            <input type="range" id="bg-lat-slider" min="0" max="75" value="0" step="5" style="width: 100%;">
+                        </div>
+                        
+                        <div class="mini-sim-views" style="grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                            <!-- 보정 전 -->
+                            <div class="mini-view-box" id="bg-conformal-click-area" style="cursor: crosshair; position: relative; background: rgba(255, 46, 99, 0.03); border: 1px solid rgba(255, 46, 99, 0.2);">
+                                <span class="box-title" style="color: var(--color-danger);">보정 전 (도법 왜곡 표출)</span>
+                                <div class="circle-container" style="height: 140px; position: relative; overflow: hidden; width: 100%;">
+                                    <!-- 실제 판정 경계 (고정) -->
+                                    <div class="math-limit-circle" style="position: absolute; width: 40px; height: 40px; border: 2px dashed rgba(255,255,255,0.4); border-radius: 50%; z-index: 1;"></div>
+                                    <!-- 시각적 원 (위도에 따라 비대화됨) -->
+                                    <div class="visual-buffer-circle" id="bg-visual-conformal" style="position: absolute; width: 40px; height: 40px; border: 2px solid #ff2e63; background: rgba(255, 46, 99, 0.15); border-radius: 50%; transition: all 0.3s ease;"></div>
+                                    <span class="click-dot" id="bg-conformal-dot" style="position: absolute; width: 6px; height: 6px; background: #fff; border-radius: 50%; display: none; z-index: 2; box-shadow: 0 0 8px #fff;"></span>
+                                </div>
+                                <span class="box-note" id="bg-conformal-status" style="color: #ff2e63; font-weight: bold;">[ 원 내부를 클릭해 보세요 ]</span>
+                                <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">실제 연산 경계(점선)와 표출(실선) 불일치</span>
+                            </div>
+                            
+                            <!-- 보정 후 -->
+                            <div class="mini-view-box" id="bg-equidistant-click-area" style="cursor: crosshair; position: relative; background: rgba(0, 240, 255, 0.03); border: 1px solid rgba(0, 240, 255, 0.2);">
+                                <span class="box-title" style="color: var(--color-success);">보정 후 (360도 동거리 정합 표출)</span>
+                                <div class="circle-container" style="height: 140px; position: relative; overflow: hidden; width: 100%;">
+                                    <!-- 실제 판정 경계 (고정) -->
+                                    <div class="math-limit-circle" style="position: absolute; width: 40px; height: 40px; border: 2px dashed rgba(255,255,255,0.4); border-radius: 50%; z-index: 1;"></div>
+                                    <!-- 시각적 원 (보정 처리되어 점선과 항상 정합) -->
+                                    <div class="visual-buffer-circle" id="bg-visual-equidistant" style="position: absolute; width: 40px; height: 40px; border: 2px solid #00f0ff; background: rgba(0, 240, 255, 0.15); border-radius: 50%; transition: all 0.3s ease;"></div>
+                                    <span class="click-dot" id="bg-equidistant-dot" style="position: absolute; width: 6px; height: 6px; background: #fff; border-radius: 50%; display: none; z-index: 2; box-shadow: 0 0 8px #fff;"></span>
+                                </div>
+                                <span class="box-note" id="bg-equidistant-status" style="color: #00f0ff; font-weight: bold;">[ 원 내부를 클릭해 보세요 ]</span>
+                                <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">실제 연산(점선)과 표출(실선) 100% 정합</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 오른쪽: 설명 다이어그램 이미지 및 가이드 리스트 -->
+                <div class="tissot-modal-right" style="flex: 0.7;">
+                    <div class="concept-diagram-wrapper">
+                        <h4>📊 데이터 분석과 표출의 기하학적 정합 구조</h4>
+                        <img src="gis_consistency_diagram.png" alt="정합성 정거 분석 아키텍처 다이어그램" style="width: 100%; border-radius: 10px; border: 1px solid rgba(0, 240, 255, 0.15);">
+                    </div>
+                    
+                    <div class="tissot-section" style="margin-top: 15px;">
+                        <h4>📐 세부 합의 및 기술적 논점 요약</h4>
+                        <ul>
+                            <li><strong>도법 팽창 무시</strong>: 등각 메르카토르상에서 버퍼 형상이 부풀어 오르는 렌더링은 데이터 오독을 낳으므로 차단하고, 중심점 반경 500km 등거리 화소 스케일을 균일 적용합니다.</li>
+                            <li><strong>데이터 투명성 확보</strong>: 지도상의 표출 원 경계를 넘어선 타깃은 GIS 판정에서 완벽하게 제외(불포함) 처리됨을 시각적으로도 명시합니다.</li>
+                            <li><strong>정합성 통일 효과</strong>: 기상 레이더 방경, 국방 군사 작전 반경, 행정 시설 수혜 반경 등 정밀 지리 공간 서비스의 대민 신뢰도 확보에 결정적 기여를 이룹니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 메인 로직 스크립트 -->
     <script src="app.js"></script>
 </body>
