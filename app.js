@@ -1439,14 +1439,28 @@ function setupInteractions() {
         const rad = lat * Math.PI / 180;
         const cosVal = Math.cos(rad);
         
-        // 1. 보정 전 (등각도법 왜곡): 위도 상승 시 visual 원주 스케일이 시컨트 배율로 팽창
+        // 1. 위도 상승에 따른 비대칭 border-radius 모핑 연산 (달걀 뒤집어 놓은 형태 연출)
+        // 0도일 때 50%, 75도일 때 50% 50% 32% 32% / 38% 38% 62% 62%
+        const ratio = lat / 75;
+        const bottomRadius = 50 - 18 * ratio;
+        const topRadiusY = 50 - 12 * ratio;
+        const bottomRadiusY = 50 + 12 * ratio;
+        const borderRadiusStr = `50% 50% ${bottomRadius}% ${bottomRadius}% / ${topRadiusY}% ${topRadiusY}% ${bottomRadiusY}% ${bottomRadiusY}`;
+        
+        // 2. 보정 전 (등각도법 왜곡): 위도 상승 시 visual 원주가 북쪽 팽창 비대칭 달걀 형태로 스케일업
         const conformalScale = Math.min(3.5, 1 / cosVal);
         d3.select("#bg-visual-conformal")
-            .style("transform", `translate(-50%, -50%) scale(${conformalScale})`);
+            .style("transform", `translate(-50%, -50%) scale(${conformalScale})`)
+            .style("border-radius", borderRadiusStr);
 
-        // 2. 보정 후 (360도 전방위 동거리 정합): 위도와 무관하게 1.0 고정 (정원 표준화)
+        // 3. 보정 후 (360도 전방위 동거리 정합): 스케일은 점선원과 포개어지도록 1.0 고정이되 형태는 달걀 모핑 유지
         d3.select("#bg-visual-equidistant")
-            .style("transform", "translate(-50%, -50%) scale(1)");
+            .style("transform", "translate(-50%, -50%) scale(1)")
+            .style("border-radius", borderRadiusStr);
+            
+        // 4. 수학적 판정 한계 점선원도 동일하게 달걀 모핑 적용
+        d3.selectAll(".math-limit-circle")
+            .style("border-radius", borderRadiusStr);
             
         // 클릭 상태 초기화
         d3.selectAll(".click-dot").style("display", "none");
@@ -1486,18 +1500,27 @@ function setupInteractions() {
                .style("display", "block");
                
             const dist = Math.sqrt((clickX - cx) ** 2 + (clickY - cy) ** 2);
-            const mathRadius = 20; // 실제 구면 판정 픽셀 반경 (고정 점선원의 반경)
+            const mathRadius = 20; // 실제 구면 기준의 기본 픽셀 반경
             
             const statusText = area.select(".box-note");
             
+            // 달걀 뒤집어 놓은 비대칭 형태(Egg-shape)의 남북 팽창 오차 수학적 감안
+            // dy = clickY - cy (음수면 북쪽/위쪽 클릭, 양수면 남쪽/아래쪽 클릭)
+            // 메르카토르 상에서 북쪽은 팽창률이 늘어나고, 남쪽은 줄어들므로 (1 - dy/dist * skew) 로 모델링
+            const lat = +d3.select("#bg-lat-slider").property("value");
+            const skewRatio = (lat / 75) * 0.24; // 위도가 올라갈수록 최대 24%의 남북 비대칭성 발생
+            
+            const directionY = dist > 0 ? (clickY - cy) / dist : 0;
+            
+            // 1. 실제 구면 대원 연산 한계 영역 (위도 상승에 따라 달걀 모양으로 찌그러지는 경계)
+            const currentMathLimit = mathRadius * (1 - directionY * skewRatio);
+            const isMathIn = dist <= currentMathLimit;
+
             if (isConformal) {
-                const lat = +d3.select("#bg-lat-slider").property("value");
-                const rad = lat * Math.PI / 180;
-                const conformalScale = Math.min(3.5, 1 / Math.cos(rad));
-                const visualRadius = mathRadius * conformalScale;
-                
-                const isVisualIn = dist <= visualRadius;
-                const isMathIn = dist <= mathRadius;
+                // 2. 보정 전 (도법 왜곡 표출): 스케일 자체가 팽창하면서 달걀 형태로 커진 경계
+                const conformalScale = Math.min(3.5, 1 / Math.cos(lat * Math.PI / 180));
+                const currentVisualLimit = mathRadius * conformalScale * (1 - directionY * skewRatio);
+                const isVisualIn = dist <= currentVisualLimit;
                 
                 if (isVisualIn && !isMathIn) {
                     statusText.html("❌ 불일치: 표출 포함 / 분석 제외 (왜곡 오류)")
@@ -1510,8 +1533,9 @@ function setupInteractions() {
                               .attr("class", "box-note status-match");
                 }
             } else {
-                const isIn = dist <= mathRadius;
-                if (isIn) {
+                // 3. 보정 후 (360도 동거리 정합): 표출 경계가 실제 분석 경계(달걀 형상 점선)와 항상 100% 동일함
+                const isVisualIn = dist <= currentMathLimit;
+                if (isVisualIn && isMathIn) {
                     statusText.html("✅ 일치: 표출 포함 / 분석 포함 (정합)")
                               .attr("class", "box-note status-match");
                 } else {
