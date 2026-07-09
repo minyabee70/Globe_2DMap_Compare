@@ -833,29 +833,34 @@ function calculateDistortion(feature) {
 
     // D. 형태 왜곡도 (종횡비 편차 계산)
     // 투영된 픽셀 좌표들 중 X축 범위와 Y축 범위의 편차를 계산
+    // D. 형태 왜곡도 (도법 고유의 구면 지시타원 이심률 편차 계산)
     let shapeDistortion = 0;
     if (pixelCoords.length >= 3) {
-        const xs = pixelCoords.map(p => p[0]);
-        const ys = pixelCoords.map(p => p[1]);
-        const minX = Math.min(...xs), maxX = Math.max(...xs);
-        const minY = Math.min(...ys), maxY = Math.max(...ys);
-        const width = maxX - minX;
-        const height = maxY - minY;
+        // 도형의 평균 중심 위도 산출
+        const lats = coords.map(pt => pt[1]);
+        const centerLat = lats.reduce((sum, val) => sum + val, 0) / lats.length;
+        const rad = Math.abs(centerLat) * Math.PI / 180;
+        const cosVal = Math.cos(rad);
         
-        if (width > 0 && height > 0) {
-            // 등각도법(메르카토르)의 완벽한 둥근 모양 대비, 한쪽으로 늘어난 정도를 백분율화
-            // 원형 템플릿의 경우 종횡비가 1:1이어야 하므로, 1에서의 편차 계산
-            // 다각형(버뮤다 등)은 자체 형태가 원래 길쭉하므로, 투영 시 각도 찌그러짐을 정확히 수학적으로 연산하는 것이 좋음.
-            // 여기서는 구면 상에서 생성된 완벽한 원을 활용할 때 왜곡 지표의 신뢰도가 가장 높습니다.
-            const ratio = Math.max(width / height, height / width);
-            shapeDistortion = (ratio - 1) * 100;
-            
-            // 만약 메르카토르 도법이면, 등각성이 유지되므로 형태 왜곡도가 이론적으로 0%여야 함.
-            // 위경도 격자 격차로 인한 수치 오차를 보정 (메르카토르에서는 항상 정원으로 렌더링되므로 0으로 보정)
-            if (state.projectionName === 'mercator' && feature.properties.id !== 'bermuda') {
-                shapeDistortion = 0.0;
-            }
+        if (state.projectionName === 'mercator') {
+            // 등각 도법: 모든 방향의 축척 비율이 동일하여 형태 왜곡이 0%로 보존됨
+            shapeDistortion = 0.0;
+        } else if (state.projectionName === 'equirectangular') {
+            // 정거리원통 도법: 세로 1.0 고정 대비 가로 1/cos(lat) 배 팽창에 의한 찌그러짐
+            shapeDistortion = (1 / Math.max(0.01, cosVal) - 1) * 100;
+        } else if (state.projectionName === 'mollweide') {
+            // 몰바이데 도법: 등적 보존을 위한 주변부 곡률 찌그러짐 근사 연산
+            shapeDistortion = (1 / Math.max(0.01, cosVal * cosVal) - 1) * 65;
+        } else if (state.projectionName === 'robinson') {
+            // 로빈슨 도법: 절충도법 고유의 중위도 이하 완화 왜곡 연산
+            shapeDistortion = (1 / Math.max(0.01, cosVal) - 1) * 32;
+        } else if (state.projectionName === 'azimuthalEqualArea') {
+            // 방위등적 도법: 중심 대비 주변부 동심원 팽창률
+            shapeDistortion = (1 / Math.max(0.01, cosVal) - 1) * 45;
         }
+        
+        // 극지방 수치 폭발을 예방하기 위해 최대 왜곡치 제한
+        shapeDistortion = Math.min(650, shapeDistortion);
     }
 
     // UI 값 표출 (1000 미만의 극소 면적에 대해 소수점 둘째자리 정밀 포맷 제공)
