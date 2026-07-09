@@ -1166,9 +1166,9 @@ svg {
     border: 1px solid rgba(0, 240, 255, 0.2);
     border-radius: 20px;
     width: 100%;
-    max-width: 960px;
+    max-width: 1180px;
     max-height: 90vh;
-    padding: 30px;
+    padding: 36px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 240, 255, 0.05);
     display: flex;
     flex-direction: column;
@@ -1185,7 +1185,7 @@ svg {
 }
 
 .tissot-modal-header h2 {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #fff;
     background: linear-gradient(135deg, #fff, #00f0ff);
@@ -1228,7 +1228,7 @@ svg {
 }
 
 .tissot-desc-p {
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     line-height: 1.6;
     color: var(--text-secondary);
 }
@@ -1254,7 +1254,7 @@ svg {
 }
 
 .tissot-section ul li {
-    font-size: 0.76rem;
+    font-size: 0.82rem;
     color: var(--text-secondary);
     line-height: 1.5;
     position: relative;
@@ -1333,13 +1333,13 @@ svg {
 }
 
 .box-title {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     font-weight: 500;
 }
 
 .circle-container {
-    height: 90px;
+    height: 125px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1349,8 +1349,8 @@ svg {
 }
 
 .indicatrix-circle {
-    width: 25px;
-    height: 25px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: rgba(255, 46, 99, 0.25);
     border: 2px solid #ff2e63;
@@ -1359,7 +1359,7 @@ svg {
 }
 
 .box-note {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-family: var(--font-mono);
     color: var(--color-accent);
 }
