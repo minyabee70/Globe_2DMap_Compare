@@ -422,7 +422,7 @@
                     <!-- 인터랙티브 미니 시뮬레이터 -->
                     <div class="mini-sim-card">
                         <h4>🛠️ 위도별 왜곡 미니 시뮬레이터</h4>
-                        <p class="mini-sim-p">슬라이더를 조작하여 등각(메르카토르)과 등적(몰바이데) 도법 하에서 원의 모양이 어떻게 왜곡되는지 미니 테스트를 수행해 보세요.</p>
+                        <p class="mini-sim-p">슬라이더를 조작하여 등각(메르카토르), 등적(몰바이데), 등거(정거원통) 도법 하에서 원의 모양이 어떻게 왜곡되는지 비교해 보세요.</p>
                         
                         <div class="mini-sim-control">
                             <label for="mini-lat-slider">가상 위도 조절: <span id="mini-lat-val">0°</span></label>
@@ -444,6 +444,13 @@
                                 </div>
                                 <span class="box-note" id="equalarea-note">형태: 0% 왜곡 (면적 보존)</span>
                              </div>
+                             <div class="mini-view-box">
+                                <span class="box-title">등거도법 (정거원통)</span>
+                                <div class="circle-container">
+                                    <div class="indicatrix-circle" id="equidistant-indicator"></div>
+                                </div>
+                                <span class="box-note" id="equidistant-note">세로 고정 (남북 거리 보존)</span>
+                             </div>
                         </div>
                     </div>
                 </div>
@@ -459,6 +466,7 @@
                         <ul>
                              <li><strong>정원(Circle) 형태 유지 (등각 도법)</strong>:<br>지시타원이 항상 정원형을 보존합니다. 다만 고위도로 갈수록 크기(면적)가 기하급수적으로 커집니다.</li>
                              <li><strong>타원(Ellipse)으로 변형 (등적 도법)</strong>:<br>면적을 완벽히 동일하게 유지하는 대신, 고위도로 갈수록 좌우 혹은 상하로 찌그러진 타원형으로 일그러집니다.</li>
+                             <li><strong>가로 확장 타원(Ellipse)으로 변형 (등거 도법)</strong>:<br>남북(자오선) 방향의 거리가 일정하게 보존되는 대신, 고위도로 갈수록 가로로만 신장되어 지시타원이 좌우로 길쭉한 타원형으로 찌그러집니다.</li>
                         </ul>
                     </div>
                 </div>

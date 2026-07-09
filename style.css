@@ -1166,7 +1166,7 @@ svg {
     border: 1px solid rgba(0, 240, 255, 0.2);
     border-radius: 20px;
     width: 100%;
-    max-width: 900px;
+    max-width: 960px;
     max-height: 90vh;
     padding: 30px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 240, 255, 0.05);
@@ -1312,10 +1312,11 @@ svg {
     width: 100%;
 }
 
+/* 3열 레이아웃으로 변경 */
 .mini-sim-views {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
     margin-top: 5px;
 }
 

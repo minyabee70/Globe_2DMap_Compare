@@ -1368,5 +1368,12 @@ function setupInteractions() {
             .style("transform", `scale(${eqWidth}, ${eqHeight})`);
         const distortPct = Math.round((eqHeight / eqWidth - 1) * 100);
         d3.select("#equalarea-note").text(`찌그러짐: ${distortPct}% (면적 보존)`);
+
+        // 3. 등거도법 (정거원통): 세로(남북) 1.0 고정 보존, 가로(동서) 시컨트 팽창
+        const eqDistWidth = Math.min(3.5, 1 / cosVal);
+        const eqDistHeight = 1.0;
+        d3.select("#equidistant-indicator")
+            .style("transform", `scale(${eqDistWidth}, ${eqDistHeight})`);
+        d3.select("#equidistant-note").text(`가로: ${eqDistWidth.toFixed(1)}배 (남북 거리 보존)`);
     }
 }
