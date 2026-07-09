@@ -1323,4 +1323,50 @@ function setupInteractions() {
     d3.select("#btn-show-intro").on("click", () => {
         d3.select("#intro-screen").classed("hidden", false);
     });
+
+    // M. 팃소 지시타원 상세 소개 모달 제어 및 미니 시뮬레이터 구동
+    d3.select("#btn-show-tissot-desc").on("click", () => {
+        d3.select("#tissot-desc-modal").classed("hidden", false);
+        // 초기화
+        d3.select("#mini-lat-slider").property("value", 0);
+        updateMiniSimulator(0);
+    });
+
+    d3.select("#btn-close-tissot-modal").on("click", () => {
+        d3.select("#tissot-desc-modal").classed("hidden", true);
+    });
+
+    // 모달 바깥쪽 클릭 시 닫기
+    d3.select("#tissot-desc-modal").on("click", function(event) {
+        if (event.target === this) {
+            d3.select(this).classed("hidden", true);
+        }
+    });
+
+    // 미니 시뮬레이터 구동 리스너
+    d3.select("#mini-lat-slider").on("input", function() {
+        updateMiniSimulator(+this.value);
+    });
+
+    function updateMiniSimulator(lat) {
+        d3.select("#mini-lat-val").text(`${lat}°`);
+        const rad = lat * Math.PI / 180;
+        const cosVal = Math.cos(rad);
+        
+        // 1. 등각도법 (메르카토르): 형태 유지, 위도 상승 시 크기 팽창
+        const conformalScale = Math.min(3.5, 1 / cosVal);
+        d3.select("#conformal-indicator")
+            .style("transform", `scale(${conformalScale})`)
+            .style("border-radius", "50%");
+        const areaRatio = conformalScale * conformalScale;
+        d3.select("#conformal-note").text(`면적: ${areaRatio.toFixed(1)}배 (원형 유지)`);
+
+        // 2. 등적도법 (몰바이데): 면적 보존, 가로 수축 및 세로 신장으로 찌그러짐
+        const eqWidth = Math.max(0.33, cosVal);
+        const eqHeight = Math.min(3.0, 1 / cosVal);
+        d3.select("#equalarea-indicator")
+            .style("transform", `scale(${eqWidth}, ${eqHeight})`);
+        const distortPct = Math.round((eqHeight / eqWidth - 1) * 100);
+        d3.select("#equalarea-note").text(`찌그러짐: ${distortPct}% (면적 보존)`);
+    }
 }

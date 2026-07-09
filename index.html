@@ -73,6 +73,10 @@
                 <h1>지구본 vs 평면도법 <span>투영의 과학과 공간 왜곡 분석</span></h1>
             </div>
             <div class="header-controls" style="display: flex; align-items: center; gap: 16px;">
+                <!-- 팃소 지시타원 상세 소개 버튼 -->
+                <button id="btn-show-tissot-desc" style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0, 194, 255, 0.3); color: var(--color-accent); font-size: 0.72rem; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: var(--transition-smooth); outline: none;">
+                    <span>🌐</span> 팃소의 지시타원 소개
+                </button>
                 <!-- 전역 도움말 및 소개 토글 버튼 -->
                 <button id="btn-show-intro" style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0, 194, 255, 0.3); color: var(--color-accent); font-size: 0.72rem; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: var(--transition-smooth); outline: none;">
                     <span>ℹ️</span> 도움말 / 소개
@@ -390,6 +394,76 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- 팃소의 지시타원 상세 해설 모달 -->
+    <div class="tissot-modal-overlay hidden" id="tissot-desc-modal">
+        <div class="tissot-modal-card">
+            <div class="tissot-modal-header">
+                <h2>🌐 팃소의 지시타원 (Tissot's Indicatrix) 이란?</h2>
+                <button class="btn-close-modal" id="btn-close-tissot-modal">×</button>
+            </div>
+            
+            <div class="tissot-modal-body">
+                <!-- 왼쪽: 개념 및 인터랙티브 시뮬레이션 -->
+                <div class="tissot-modal-left">
+                    <p class="tissot-desc-p">
+                        <strong>팃소의 지시타원(Tissot's indicatrix)</strong>은 지도 투영 과정에서 발생하는 공간 왜곡(면적, 각도, 형태, 거리 등)을 시각적으로 표현하기 위해 지도 위에 그려 넣은 가상의 작은 원입니다. 이 개념은 1859년 프랑스의 수학자 <strong>니콜라 오귀스트 팃소(Nicolas Auguste Tissot)</strong>가 제안했습니다.
+                    </p>
+                    
+                    <div class="tissot-section">
+                        <h4>💡 주요 특징 및 역할</h4>
+                        <ul>
+                             <li><strong>왜곡의 시각화</strong>: 지구본(3차원 구면)상에서는 위도와 경도에 상관없이 동일한 크기의 원이었던 것이, 평면 지도(2D)로 투영되는 과정에서 위도나 도법의 특성에 따라 타원형으로 찌그러지거나 크기가 커지게 됩니다. 이 변화된 타원의 형태를 통해 왜곡의 방향과 크기를 즉각적으로 파악할 수 있습니다.</li>
+                             <li><strong>수학적 기초</strong>: 3차원 곡면을 2차원 평면으로 완벽하게 옮기는 것은 기하학적으로 불가능하다는 <em>가우스의 빼어난 정리(Theorema Egregium)</em>를 실증적으로 보여주는 훌륭한 시각 도구입니다.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 인터랙티브 미니 시뮬레이터 -->
+                    <div class="mini-sim-card">
+                        <h4>🛠️ 위도별 왜곡 미니 시뮬레이터</h4>
+                        <p class="mini-sim-p">슬라이더를 조작하여 등각(메르카토르)과 등적(몰바이데) 도법 하에서 원의 모양이 어떻게 왜곡되는지 미니 테스트를 수행해 보세요.</p>
+                        
+                        <div class="mini-sim-control">
+                            <label for="mini-lat-slider">가상 위도 조절: <span id="mini-lat-val">0°</span></label>
+                            <input type="range" id="mini-lat-slider" min="0" max="80" value="0" step="5">
+                        </div>
+                        
+                        <div class="mini-sim-views">
+                            <div class="mini-view-box">
+                                <span class="box-title">등각도법 (메르카토르)</span>
+                                <div class="circle-container">
+                                    <div class="indicatrix-circle" id="conformal-indicator"></div>
+                                </div>
+                                <span class="box-note" id="conformal-note">면적: 1.0배 (원형 유지)</span>
+                             </div>
+                             <div class="mini-view-box">
+                                <span class="box-title">등적도법 (몰바이데)</span>
+                                <div class="circle-container">
+                                    <div class="indicatrix-circle" id="equalarea-indicator"></div>
+                                </div>
+                                <span class="box-note" id="equalarea-note">형태: 0% 왜곡 (면적 보존)</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 오른쪽: 시각 자료 및 원리 -->
+                <div class="tissot-modal-right">
+                    <div class="concept-diagram-wrapper">
+                        <h4>📊 투영법 분류별 지시원 특징</h4>
+                        <img src="tissot_concept_diagram.png" id="tissot-concept-img" alt="팃소 지시타원 개념 다이어그램">
+                    </div>
+                    <div class="tissot-section" style="margin-top: 15px;">
+                        <h4>📐 투영법별 지시원 거동 상세</h4>
+                        <ul>
+                             <li><strong>정원(Circle) 형태 유지 (등각 도법)</strong>:<br>지시타원이 항상 정원형을 보존합니다. 다만 고위도로 갈수록 크기(면적)가 기하급수적으로 커집니다.</li>
+                             <li><strong>타원(Ellipse)으로 변형 (등적 도법)</strong>:<br>면적을 완벽히 동일하게 유지하는 대신, 고위도로 갈수록 좌우 혹은 상하로 찌그러진 타원형으로 일그러집니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- 메인 로직 스크립트 -->
